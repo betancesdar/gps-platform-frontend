@@ -3,15 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 8547",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 8547",
     "lint": "eslint"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "axios": "^1.13.3",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.19",
+    "leaflet": "^1.9.4",
     "next": "16.1.4",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-leaflet": "^5.0.0",
+    "socket.io-client": "^4.8.3",
+    "uuid": "^13.0.0",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
