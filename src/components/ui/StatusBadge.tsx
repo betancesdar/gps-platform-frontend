@@ -3,20 +3,27 @@ import clsx from 'clsx';
 
 type DeviceStatus = 'ONLINE' | 'OFFLINE' | 'EXECUTING';
 type ExecutionStatus = 'RUNNING' | 'PAUSED' | 'STOPPED' | 'COMPLETED';
-type StatusType = DeviceStatus | ExecutionStatus | 'idle';
+type StatusType = DeviceStatus | ExecutionStatus | 'idle' | string;
 
 interface StatusBadgeProps {
-    status: StatusType;
+    status?: StatusType;
     size?: 'sm' | 'md' | 'lg';
     showDot?: boolean;
 }
+
+const defaultConfig = {
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    dotColor: 'bg-gray-400',
+    label: 'Desconocido',
+    animate: false,
+};
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
     status,
     size = 'md',
     showDot = true,
 }) => {
-    const statusConfig = {
+    const statusConfig: Record<string, typeof defaultConfig> = {
         // Device statuses (backend real)
         ONLINE: {
             color: 'bg-green-100 text-green-800 border-green-200',
@@ -84,7 +91,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         lg: 'w-2.5 h-2.5',
     };
 
-    const config = statusConfig[status];
+    // Use status config or default if status is undefined/unknown
+    const config = status && statusConfig[status] ? statusConfig[status] : defaultConfig;
 
     return (
         <span

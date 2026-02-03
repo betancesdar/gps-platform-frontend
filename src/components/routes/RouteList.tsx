@@ -27,13 +27,15 @@ export const RouteList: React.FC<RouteListProps> = ({
         onSelectRoute?.(routeId);
     };
 
-    if (routes.length === 0) {
+    // Safe check for routes array
+    if (!Array.isArray(routes) || routes.length === 0) {
         return (
             <Card>
                 <div className="text-center py-8">
-                    <div className="text-gray-400 text-lg mb-2">No routes available</div>
+                    <div className="text-4xl mb-3">🗺️</div>
+                    <div className="text-gray-600 text-lg mb-2">No hay rutas disponibles</div>
                     <div className="text-gray-500 text-sm">
-                        Create a new route to get started
+                        Crea una nueva ruta para comenzar
                     </div>
                 </div>
             </Card>
@@ -42,99 +44,101 @@ export const RouteList: React.FC<RouteListProps> = ({
 
     return (
         <div className="space-y-3">
-            {routes.map((route) => (
-                <Card
-                    key={route.id}
-                    className={`cursor-pointer transition-all ${selectedRouteId === route.id ? 'ring-2 ring-blue-500' : ''
-                        }`}
-                    hover
-                    onClick={() => handleSelect(route.id)}
-                >
-                    <div className="space-y-3">
-                        {/* Header */}
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                                <h3 className="font-semibold text-lg text-gray-900">
-                                    {route.name}
-                                </h3>
-                                {route.description && (
-                                    <p className="text-sm text-gray-600 mt-1">
-                                        {route.description}
-                                    </p>
+            {routes.map((route, index) => {
+                // Get route ID safely - backend uses routeId, frontend might use id
+                const routeId = route.id || (route as any).routeId || `route-${index}`;
+
+                // Get point count safely - backend uses pointCount, frontend uses points.length
+                const pointCount = (route as any).pointCount ?? route.points?.length ?? 0;
+
+                return (
+                    <Card
+                        key={routeId}
+                        className={`cursor-pointer transition-all ${selectedRouteId === routeId ? 'ring-2 ring-blue-500' : ''
+                            }`}
+                        hover
+                        onClick={() => handleSelect(routeId)}
+                    >
+                        <div className="space-y-3">
+                            {/* Header */}
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-lg text-gray-900">
+                                        {route.name || 'Ruta sin nombre'}
+                                    </h3>
+                                    {route.description && (
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {route.description}
+                                        </p>
+                                    )}
+                                </div>
+                                {route.loop && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        🔄 Loop
+                                    </span>
                                 )}
                             </div>
-                            {route.loop && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                    🔄 Loop
-                                </span>
-                            )}
-                        </div>
 
-                        {/* Route Info */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                            <div>
-                                <div className="text-gray-600">Points</div>
-                                <div className="font-semibold text-gray-900">
-                                    {route.points.length}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-gray-600">Stops</div>
-                                <div className="font-semibold text-gray-900">
-                                    {route.stops.length}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-gray-600">Speed</div>
-                                <div className="font-semibold text-blue-600">
-                                    {route.speed} km/h
-                                </div>
-                            </div>
-                            {route.distance && (
+                            {/* Route Info */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                                 <div>
-                                    <div className="text-gray-600">Distance</div>
+                                    <div className="text-gray-600">Puntos</div>
                                     <div className="font-semibold text-gray-900">
-                                        {(route.distance / 1000).toFixed(2)} km
+                                        {pointCount}
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                                <div>
+                                    <div className="text-gray-600">Tipo</div>
+                                    <div className="font-semibold text-gray-900">
+                                        {(route as any).sourceType === 'gpx' ? '📄 GPX' : '📍 Puntos'}
+                                    </div>
+                                </div>
+                                {route.speed && (
+                                    <div>
+                                        <div className="text-gray-600">Velocidad</div>
+                                        <div className="font-semibold text-blue-600">
+                                            {route.speed} km/h
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Metadata */}
-                        <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
-                            Created {dayjs(route.createdAt).format('MMM D, YYYY')}
-                        </div>
+                            {/* Metadata */}
+                            <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
+                                Creada {route.createdAt ? dayjs(route.createdAt).format('DD MMM YYYY') : 'recientemente'}
+                            </div>
 
-                        {/* Actions */}
-                        <div className="flex gap-2 pt-2 border-t border-gray-100">
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEditRoute?.(route);
-                                }}
-                                className="flex-1"
-                            >
-                                ✏️ Edit
-                            </Button>
-                            <Button
-                                variant="danger"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm(`Delete route "${route.name}"?`)) {
-                                        onDeleteRoute?.(route.id);
-                                    }
-                                }}
-                                className="flex-1"
-                            >
-                                🗑️ Delete
-                            </Button>
+                            {/* Actions */}
+                            <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditRoute?.(route);
+                                    }}
+                                    className="flex-1"
+                                >
+                                    ✏️ Editar
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm(`¿Eliminar ruta "${route.name}"?`)) {
+                                            onDeleteRoute?.(routeId);
+                                        }
+                                    }}
+                                    className="flex-1"
+                                >
+                                    🗑️ Eliminar
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                </Card>
-            ))}
+                    </Card>
+                );
+            })}
         </div>
     );
 };

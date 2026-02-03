@@ -1,71 +1,110 @@
 import axiosInstance from '@/lib/axios';
 
+interface ApiResponse<T> {
+    success: boolean;
+    data: T;
+    message?: string;
+}
+
+export interface StreamOptions {
+    speed?: number;
+    accuracy?: number;
+    loop?: boolean;
+}
+
 export interface StreamStatus {
     deviceId: string;
     routeId: string;
-    status: 'RUNNING' | 'PAUSED' | 'STOPPED' | 'COMPLETED';
-    currentPointIndex: number;
-    progress: number; // 0-100
-}
-
-export interface StartStreamRequest {
-    routeId: string;
-    deviceId: string;
-    speed?: number; // m/s, default: 1.4 (~5 km/h walking)
+    status: 'running' | 'paused' | 'stopped';
+    speed: number;
+    loop: boolean;
+    currentIndex?: number;
+    totalPoints?: number;
 }
 
 export const streamService = {
     /**
-     * Start streaming location to a device
+     * Start a stream
      * POST /api/stream/start
      */
-    async start(data: StartStreamRequest): Promise<StreamStatus> {
-        const response = await axiosInstance.post<StreamStatus>('/stream/start', data);
-        return response.data;
+    async start(deviceId: string, routeId: string, options?: StreamOptions): Promise<StreamStatus> {
+        const response = await axiosInstance.post<ApiResponse<StreamStatus>>('/stream/start', {
+            deviceId,
+            routeId,
+            speed: options?.speed || 30,
+            loop: options?.loop || false,
+            accuracy: options?.accuracy || 10,
+        });
+        return response.data.data;
     },
 
     /**
-     * Pause streaming
+     * Pause a stream
      * POST /api/stream/pause
      */
-    async pause(deviceId: string): Promise<StreamStatus> {
-        const response = await axiosInstance.post<StreamStatus>('/stream/pause', { deviceId });
-        return response.data;
+    async pause(deviceId: string): Promise<{ success: boolean }> {
+        const response = await axiosInstance.post<ApiResponse<any>>('/stream/pause', {
+            deviceId,
+        });
+        return { success: response.data.success };
     },
 
     /**
-     * Resume streaming
+     * Resume a stream
      * POST /api/stream/resume
      */
-    async resume(deviceId: string): Promise<StreamStatus> {
-        const response = await axiosInstance.post<StreamStatus>('/stream/resume', { deviceId });
-        return response.data;
+    async resume(deviceId: string): Promise<{ success: boolean }> {
+        const response = await axiosInstance.post<ApiResponse<any>>('/stream/resume', {
+            deviceId,
+        });
+        return { success: response.data.success };
     },
 
     /**
-     * Stop streaming
+     * Stop a stream
      * POST /api/stream/stop
      */
-    async stop(deviceId: string): Promise<StreamStatus> {
-        const response = await axiosInstance.post<StreamStatus>('/stream/stop', { deviceId });
-        return response.data;
+    async stop(deviceId: string): Promise<{ success: boolean }> {
+        const response = await axiosInstance.post<ApiResponse<any>>('/stream/stop', {
+            deviceId,
+        });
+        return { success: response.data.success };
     },
 
     /**
      * Get stream status for a device
      * GET /api/stream/status/:deviceId
      */
-    async getStatus(deviceId: string): Promise<StreamStatus> {
-        const response = await axiosInstance.get<StreamStatus>(`/stream/status/${deviceId}`);
-        return response.data;
+    async getStatus(deviceId: string): Promise<StreamStatus | null> {
+        try {
+            const response = await axiosInstance.get<ApiResponse<StreamStatus>>(`/stream/status/${deviceId}`);
+            return response.data.data;
+        } catch (error) {
+            return null;
+        }
     },
 
     /**
      * Get all active streams
      * GET /api/stream/all
      */
-    async getAll(): Promise<StreamStatus[]> {
-        const response = await axiosInstance.get<StreamStatus[]>('/stream/all');
-        return response.data;
+    async getAllActive(): Promise<StreamStatus[]> {
+        const response = await axiosInstance.get<ApiResponse<StreamStatus[]>>('/stream/all');
+        if (response.data && 'data' in response.data && Array.isArray(response.data.data)) {
+            return response.data.data;
+        }
+        return [];
+    },
+
+    /**
+     * Get stream history for a device
+     * GET /api/stream/history/:deviceId
+     */
+    async getHistory(deviceId: string, limit: number = 10): Promise<StreamStatus[]> {
+        const response = await axiosInstance.get<ApiResponse<StreamStatus[]>>(`/stream/history/${deviceId}?limit=${limit}`);
+        if (response.data && 'data' in response.data && Array.isArray(response.data.data)) {
+            return response.data.data;
+        }
+        return [];
     },
 };

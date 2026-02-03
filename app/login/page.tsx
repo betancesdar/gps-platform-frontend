@@ -9,7 +9,8 @@ export default function LoginPage() {
     const router = useRouter();
     const login = useAuthStore((state) => state.login);
 
-    const [adminId, setAdminId] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -19,14 +20,22 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            const response = await authService.login(adminId);
-            login(
-                { id: adminId, name: adminId, role: 'ADMIN' },
-                response.access_token
-            );
-            router.push('/');
+            const response = await authService.login(username, password);
+            if (response.success && response.data) {
+                login(
+                    {
+                        id: response.data.user.username,
+                        name: response.data.user.username,
+                        role: response.data.user.role
+                    },
+                    response.data.token
+                );
+                router.push('/');
+            } else {
+                setError('Error al iniciar sesión');
+            }
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Error al iniciar sesión');
+            setError(err.response?.data?.message || 'Usuario o contraseña incorrectos');
         } finally {
             setIsLoading(false);
         }
@@ -74,9 +83,10 @@ export default function LoginPage() {
 
                     {/* Login Form */}
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Username Field */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Admin ID
+                                Usuario
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -87,10 +97,32 @@ export default function LoginPage() {
                                 <input
                                     type="text"
                                     required
-                                    value={adminId}
-                                    onChange={(e) => setAdminId(e.target.value)}
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                                    placeholder="admin-001"
+                                    placeholder="admin"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Password Field */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Contraseña
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                </div>
+                                <input
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                                    placeholder="••••••••"
                                 />
                             </div>
                         </div>
@@ -121,14 +153,14 @@ export default function LoginPage() {
                                 <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                 </svg>
-                                Admin ID de prueba:
+                                Credenciales de prueba:
                             </p>
                             <div className="space-y-1">
                                 <p className="text-sm text-gray-600">
-                                    Usa cualquier ID, por ejemplo:{' '}
-                                    <code className="bg-white px-2 py-0.5 rounded text-blue-600 font-mono text-xs">
-                                        admin-001
-                                    </code>
+                                    Usuario: <code className="bg-white px-2 py-0.5 rounded text-blue-600 font-mono text-xs">admin</code>
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                    Contraseña: <code className="bg-white px-2 py-0.5 rounded text-blue-600 font-mono text-xs">admin123</code>
                                 </p>
                             </div>
                         </div>
@@ -140,7 +172,6 @@ export default function LoginPage() {
                     Plataforma GPS © 2024 - Control en tiempo real
                 </p>
             </div>
-
         </div>
     );
 }

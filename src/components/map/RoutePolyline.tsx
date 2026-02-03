@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Polyline, Marker, Popup } from 'react-leaflet';
-import { Icon } from 'leaflet';
+import { Polyline, CircleMarker, Popup } from 'react-leaflet';
 import { Route } from '@/types';
 
 interface RoutePolylineProps {
@@ -16,23 +15,19 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
     color = '#3b82f6',
     weight = 4,
 }) => {
+    // Safety check for points
+    if (!route.points || !Array.isArray(route.points) || route.points.length === 0) {
+        return null;
+    }
+
     const positions = route.points.map((point) => [
         point.latitude,
         point.longitude,
     ]) as [number, number][];
 
-    // Create icon for stops
-    const stopIcon = new Icon({
-        iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" fill="#ef4444" stroke="white" stroke-width="2"/>
-        <rect x="8" y="8" width="8" height="8" fill="white" rx="1"/>
-      </svg>
-    `),
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-        popupAnchor: [0, -12],
-    });
+    // Get first and last points for markers
+    const startPoint = route.points[0];
+    const endPoint = route.points[route.points.length - 1];
 
     return (
         <>
@@ -48,28 +43,43 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                 }}
             />
 
-            {/* Stop markers */}
-            {route.stops.map((stop) => (
-                <Marker
-                    key={stop.id}
-                    position={[stop.position.latitude, stop.position.longitude]}
-                    icon={stopIcon}
+            {/* Start marker (green) */}
+            <CircleMarker
+                center={[startPoint.latitude, startPoint.longitude]}
+                radius={8}
+                pathOptions={{
+                    color: '#10b981',
+                    fillColor: '#10b981',
+                    fillOpacity: 1,
+                }}
+            >
+                <Popup>
+                    <div className="p-2">
+                        <h4 className="font-semibold">Inicio</h4>
+                        <p className="text-sm text-gray-600">{route.name}</p>
+                    </div>
+                </Popup>
+            </CircleMarker>
+
+            {/* End marker (red) */}
+            {endPoint !== startPoint && (
+                <CircleMarker
+                    center={[endPoint.latitude, endPoint.longitude]}
+                    radius={8}
+                    pathOptions={{
+                        color: '#ef4444',
+                        fillColor: '#ef4444',
+                        fillOpacity: 1,
+                    }}
                 >
                     <Popup>
                         <div className="p-2">
-                            <h4 className="font-semibold mb-1">
-                                {stop.name || 'Stop'}
-                            </h4>
-                            {stop.description && (
-                                <p className="text-sm text-gray-600 mb-2">{stop.description}</p>
-                            )}
-                            <div className="text-xs text-gray-500">
-                                Duration: {Math.floor(stop.duration / 60)} min {stop.duration % 60} sec
-                            </div>
+                            <h4 className="font-semibold">Fin</h4>
+                            <p className="text-sm text-gray-600">{route.name}</p>
                         </div>
                     </Popup>
-                </Marker>
-            ))}
+                </CircleMarker>
+            )}
         </>
     );
 };

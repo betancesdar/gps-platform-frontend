@@ -1,15 +1,31 @@
 import axiosInstance from '@/lib/axios';
-import { LoginRequest, LoginResponse, ApiResponse, User } from '@/types';
+
+export interface LoginRequest {
+    username: string;
+    password: string;
+}
+
+export interface LoginResponse {
+    success: boolean;
+    data: {
+        token: string;
+        user: {
+            username: string;
+            role: string;
+        };
+    };
+}
 
 export const authService = {
     /**
-     * Admin login (backend real)
-     * POST /auth/admin/login
+     * Admin login
+     * POST /api/auth/login
+     * Body: { username, password }
      */
-    async login(adminId: string): Promise<LoginResponse> {
+    async login(username: string, password: string): Promise<LoginResponse> {
         const response = await axiosInstance.post<LoginResponse>(
             '/auth/login',
-            { adminId }
+            { username, password }
         );
         return response.data;
     },
@@ -18,17 +34,14 @@ export const authService = {
      * Logout user
      */
     async logout(): Promise<void> {
-        // El backend no tiene endpoint de logout específico
-        // Solo limpiamos el token localmente
         return Promise.resolve();
     },
 
     /**
-     * Verify token (opcional, si el backend lo implementa)
+     * Verify token
      */
     async verifyToken(): Promise<boolean> {
         try {
-            // Intentar obtener dispositivos como verificación
             await axiosInstance.get('/devices');
             return true;
         } catch (error) {

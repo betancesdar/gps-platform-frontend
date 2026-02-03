@@ -18,13 +18,19 @@ export interface Position {
 
 // Route types (backend real)
 export interface Route {
-    id: string; // UUID
+    id: string; // UUID (mapped from routeId)
     name: string;
-    points: RoutePoint[];
-    distance: number; // meters
+    points?: RoutePoint[]; // Optional - only included when getting single route
+    distance?: number; // meters
     metadata?: any;
     createdAt: Date;
     updatedAt: Date;
+    // Backend specific fields
+    pointCount?: number;
+    sourceType?: 'points' | 'gpx';
+    speed?: number;
+    loop?: boolean;
+    description?: string;
 }
 
 export interface RoutePoint {

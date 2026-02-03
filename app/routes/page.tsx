@@ -56,12 +56,14 @@ export default function RoutesPage() {
     const handleCreateRoute = async (data: CreateRouteRequest) => {
         setIsSaving(true);
         try {
+            console.log('Creating route with data:', JSON.stringify(data, null, 2));
             const newRoute = await routesService.createRoute(data);
             addRoute(newRoute);
             setIsCreateModalOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating route:', error);
-            alert('Failed to create route');
+            const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
+            alert(`Error al crear la ruta: ${errorMessage}`);
         } finally {
             setIsSaving(false);
         }

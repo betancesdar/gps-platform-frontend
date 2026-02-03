@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Device, speedHelpers } from '@/types';
+import { Device } from '@/services/devices.service';
+import { speedHelpers } from '@/types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/StatusBadge';
@@ -9,8 +10,10 @@ import { useDeviceControl } from '@/hooks/useDeviceControl';
 import { useRoutesStore } from '@/store/useRoutesStore';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/es';
 
 dayjs.extend(relativeTime);
+dayjs.locale('es');
 
 interface DeviceCardProps {
     device: Device;
@@ -25,6 +28,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
 }) => {
     const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading } = useDeviceControl();
     const routes = useRoutesStore((state) => state.routes);
+    const safeRoutes = Array.isArray(routes) ? routes : [];
 
     const [selectedRouteId, setSelectedRouteId] = useState<string>('');
     const [speed, setSpeed] = useState<number>(1.4); // m/s, default walking speed
@@ -78,8 +82,12 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                 {/* Header */}
                 <div className="flex items-start justify-between">
                     <div>
-                        <h3 className="font-semibold text-lg text-gray-900">{device.name}</h3>
-                        <p className="text-sm text-gray-500">ID: {device.id.slice(0, 8)}...</p>
+                        <h3 className="font-semibold text-lg text-gray-900">
+                            {device.name || 'Dispositivo sin nombre'}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            ID: {device.id ? device.id.slice(0, 8) : 'N/A'}...
+                        </p>
                     </div>
                     <StatusBadge status={device.status} />
                 </div>
@@ -102,9 +110,9 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                             onClick={(e) => e.stopPropagation()}
                         >
                             <option value="">-- Selecciona una ruta --</option>
-                            {routes.map((route) => (
+                            {safeRoutes.map((route) => (
                                 <option key={route.id} value={route.id}>
-                                    {route.name} ({route.points.length} puntos)
+                                    {route.name} ({route.points?.length || 0} puntos)
                                 </option>
                             ))}
                         </select>
@@ -183,7 +191,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 disabled={isLoading}
                                 className="flex-1"
                             >
-                                ⏹ D detener
+                                ⏹ Detener
                             </Button>
                         </>
                     )}

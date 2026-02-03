@@ -10,31 +10,42 @@ export const DeviceList: React.FC = () => {
     const setSelectedDevice = useDevicesStore((state) => state.setSelectedDevice);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'ONLINE' | 'OFFLINE'>('all');
+
+    // Safely get devices array
+    const safeDevices = useMemo(() => {
+        if (!Array.isArray(devices)) return [];
+        return devices;
+    }, [devices]);
 
     // Filter devices
     const filteredDevices = useMemo(() => {
-        return devices.filter((device) => {
+        return safeDevices.filter((device) => {
+            if (!device) return false;
+
+            const deviceName = device.name || device.id || '';
+            const deviceId = device.id || '';
+
             const matchesSearch =
-                device.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                device.androidId.toLowerCase().includes(searchQuery.toLowerCase());
+                deviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                deviceId.toLowerCase().includes(searchQuery.toLowerCase());
 
             const matchesStatus =
                 statusFilter === 'all' || device.status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
-    }, [devices, searchQuery, statusFilter]);
+    }, [safeDevices, searchQuery, statusFilter]);
 
     // Statistics
     const stats = useMemo(() => {
         return {
-            total: devices.length,
-            online: devices.filter((d) => d.status === 'online').length,
-            offline: devices.filter((d) => d.status === 'offline').length,
-            running: devices.filter((d) => d.routeStatus === 'running').length,
+            total: safeDevices.length,
+            online: safeDevices.filter((d) => d?.status === 'ONLINE').length,
+            offline: safeDevices.filter((d) => d?.status === 'OFFLINE').length,
+            executing: safeDevices.filter((d) => d?.status === 'EXECUTING').length,
         };
-    }, [devices]);
+    }, [safeDevices]);
 
     return (
         <div className="space-y-4">
@@ -42,19 +53,19 @@ export const DeviceList: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-lg shadow p-4">
                     <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                    <div className="text-sm text-gray-600">Total Devices</div>
+                    <div className="text-sm text-gray-600">Total Dispositivos</div>
                 </div>
                 <div className="bg-white rounded-lg shadow p-4">
                     <div className="text-2xl font-bold text-green-600">{stats.online}</div>
-                    <div className="text-sm text-gray-600">Online</div>
+                    <div className="text-sm text-gray-600">En Línea</div>
                 </div>
                 <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-gray-600">{stats.offline}</div>
-                    <div className="text-sm text-gray-600">Offline</div>
+                    <div className="text-2xl font-bold text-gray-500">{stats.offline}</div>
+                    <div className="text-sm text-gray-600">Desconectados</div>
                 </div>
                 <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-blue-600">{stats.running}</div>
-                    <div className="text-sm text-gray-600">Running</div>
+                    <div className="text-2xl font-bold text-blue-600">{stats.executing}</div>
+                    <div className="text-sm text-gray-600">Ejecutando</div>
                 </div>
             </div>
 
@@ -65,7 +76,7 @@ export const DeviceList: React.FC = () => {
                     <div className="flex-1">
                         <input
                             type="text"
-                            placeholder="Search devices..."
+                            placeholder="Buscar dispositivos..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -77,29 +88,29 @@ export const DeviceList: React.FC = () => {
                         <button
                             onClick={() => setStatusFilter('all')}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'all'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
-                            All
+                            Todos
                         </button>
                         <button
-                            onClick={() => setStatusFilter('online')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'online'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            onClick={() => setStatusFilter('ONLINE')}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'ONLINE'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
-                            Online
+                            En Línea
                         </button>
                         <button
-                            onClick={() => setStatusFilter('offline')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'offline'
-                                    ? 'bg-gray-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            onClick={() => setStatusFilter('OFFLINE')}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'OFFLINE'
+                                ? 'bg-gray-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
-                            Offline
+                            Desconectados
                         </button>
                     </div>
                 </div>
@@ -108,9 +119,9 @@ export const DeviceList: React.FC = () => {
             {/* Device Grid */}
             {filteredDevices.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredDevices.map((device) => (
+                    {filteredDevices.map((device, index) => (
                         <DeviceCard
-                            key={device.id}
+                            key={device.id || `device-${index}`}
                             device={device}
                             onSelect={setSelectedDevice}
                             isSelected={selectedDeviceId === device.id}
@@ -119,11 +130,11 @@ export const DeviceList: React.FC = () => {
                 </div>
             ) : (
                 <div className="bg-white rounded-lg shadow p-8 text-center">
-                    <div className="text-gray-400 text-lg">No devices found</div>
+                    <div className="text-gray-400 text-lg">No hay dispositivos</div>
                     <div className="text-gray-500 text-sm mt-2">
                         {searchQuery
-                            ? 'Try adjusting your search or filters'
-                            : 'Connect devices to see them here'}
+                            ? 'Intenta ajustar tu búsqueda'
+                            : 'Los dispositivos aparecerán aquí cuando se conecten'}
                     </div>
                 </div>
             )}

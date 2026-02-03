@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Device } from '@/types';
+import { Device } from '@/services/devices.service';
 
 interface DevicesState {
     devices: Device[];
@@ -61,3 +61,6 @@ export const useDevicesStore = create<DevicesState>((set) => ({
 
     clearDevices: () => set({ devices: [], selectedDeviceId: null }),
 }));
+
+// Re-export Device type for convenience
+export type { Device } from '@/services/devices.service';

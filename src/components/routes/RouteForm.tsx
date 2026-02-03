@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
-import { CreateRouteRequest, Stop, RoutePoint } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import { CreateRouteRequest, RoutePointDto } from '@/types';
 
 interface RouteFormProps {
     onSubmit: (data: CreateRouteRequest) => void;
@@ -18,18 +17,23 @@ export const RouteForm: React.FC<RouteFormProps> = ({
     initialData,
     isLoading = false,
 }) => {
-    const [formData, setFormData] = useState<CreateRouteRequest>({
-        name: initialData?.name || '',
-        description: initialData?.description || '',
-        points: initialData?.points || [],
-        stops: initialData?.stops || [],
-        speed: initialData?.speed || 50,
-        loop: initialData?.loop || false,
-    });
+    const [name, setName] = useState(initialData?.name || '');
+    const [points, setPoints] = useState<RoutePointDto[]>(initialData?.points || []);
+    const [manualPoint, setManualPoint] = useState({ latitude: '', longitude: '' });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+
+        if (points.length < 2) {
+            alert('Necesitas al menos 2 puntos para crear una ruta');
+            return;
+        }
+
+        onSubmit({
+            name,
+            points,
+            metadata: {},
+        });
     };
 
     const handleGPXUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,235 +43,192 @@ export const RouteForm: React.FC<RouteFormProps> = ({
         const reader = new FileReader();
         reader.onload = (event) => {
             const gpxContent = event.target?.result as string;
-            // Parse GPX (simplified - in production use a proper GPX parser)
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(gpxContent, 'text/xml');
-            const trackPoints = xmlDoc.getElementsByTagName('trkpt');
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(gpxContent, 'text/xml');
+                const trackPoints = xmlDoc.getElementsByTagName('trkpt');
 
-            const points: RoutePoint[] = Array.from(trackPoints).map((trkpt, index) => ({
-                latitude: parseFloat(trkpt.getAttribute('lat') || '0'),
-                longitude: parseFloat(trkpt.getAttribute('lon') || '0'),
-                elevation: parseFloat(trkpt.getElementsByTagName('ele')[0]?.textContent || '0'),
-                index,
-            }));
+                const parsedPoints: RoutePointDto[] = Array.from(trackPoints).map((trkpt, index) => ({
+                    latitude: parseFloat(trkpt.getAttribute('lat') || '0'),
+                    longitude: parseFloat(trkpt.getAttribute('lon') || '0'),
+                    elevation: parseFloat(trkpt.getElementsByTagName('ele')[0]?.textContent || '0'),
+                    index,
+                }));
 
-            setFormData((prev) => ({ ...prev, points }));
+                if (parsedPoints.length > 0) {
+                    setPoints(parsedPoints);
+                } else {
+                    alert('No se encontraron puntos en el archivo GPX');
+                }
+            } catch (error) {
+                console.error('Error parsing GPX:', error);
+                alert('Error al parsear el archivo GPX');
+            }
         };
         reader.readAsText(file);
     };
 
-    const addStop = () => {
-        const newStop: Stop = {
-            id: uuidv4(),
-            position: {
-                latitude: 0,
-                longitude: 0,
-                timestamp: new Date().toISOString(),
-            },
-            duration: 60, // 1 minute default
-            name: `Stop ${formData.stops.length + 1}`,
+    const addManualPoint = () => {
+        const lat = parseFloat(manualPoint.latitude);
+        const lng = parseFloat(manualPoint.longitude);
+
+        if (isNaN(lat) || isNaN(lng)) {
+            alert('Por favor ingresa coordenadas válidas');
+            return;
+        }
+
+        const newPoint: RoutePointDto = {
+            latitude: lat,
+            longitude: lng,
+            index: points.length,
         };
-        setFormData((prev) => ({
-            ...prev,
-            stops: [...prev.stops, newStop],
-        }));
+
+        setPoints([...points, newPoint]);
+        setManualPoint({ latitude: '', longitude: '' });
     };
 
-    const removeStop = (stopId: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            stops: prev.stops.filter((s) => s.id !== stopId),
-        }));
-    };
-
-    const updateStop = (stopId: string, updates: Partial<Stop>) => {
-        setFormData((prev) => ({
-            ...prev,
-            stops: prev.stops.map((s) =>
-                s.id === stopId ? { ...s, ...updates } : s
-            ),
-        }));
+    const removePoint = (index: number) => {
+        const newPoints = points.filter((_, i) => i !== index).map((p, i) => ({ ...p, index: i }));
+        setPoints(newPoints);
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Route Name *
-                    </label>
-                    <input
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, name: e.target.value }))
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter route name"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description
-                    </label>
-                    <textarea
-                        value={formData.description}
-                        onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, description: e.target.value }))
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter route description"
-                        rows={3}
-                    />
-                </div>
+            {/* Route Name */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre de la Ruta *
+                </label>
+                <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ej: Ruta Centro - Norte"
+                />
             </div>
 
             {/* GPX Upload */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Upload GPX File
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📁 Cargar archivo GPX
                 </label>
                 <input
                     type="file"
                     accept=".gpx"
                     onChange={handleGPXUpload}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700"
                 />
-                {formData.points.length > 0 && (
-                    <p className="text-sm text-green-600 mt-2">
-                        ✓ {formData.points.length} points loaded
-                    </p>
-                )}
+                <p className="text-xs text-gray-500 mt-2">
+                    Sube un archivo GPX para importar los puntos de la ruta automáticamente
+                </p>
             </div>
 
-            {/* Speed */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Speed (km/h) *
+            {/* OR Divider */}
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">o añade puntos manualmente</span>
+                </div>
+            </div>
+
+            {/* Manual Point Entry */}
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📍 Añadir punto manualmente
                 </label>
-                <input
-                    type="number"
-                    required
-                    min="1"
-                    max="200"
-                    value={formData.speed}
-                    onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, speed: parseInt(e.target.value) }))
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-            </div>
-
-            {/* Loop */}
-            <div className="flex items-center gap-2">
-                <input
-                    type="checkbox"
-                    id="loop"
-                    checked={formData.loop}
-                    onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, loop: e.target.checked }))
-                    }
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="loop" className="text-sm font-medium text-gray-700">
-                    Loop route (repeat continuously)
-                </label>
-            </div>
-
-            {/* Stops */}
-            <div>
-                <div className="flex items-center justify-between mb-3">
-                    <label className="block text-sm font-medium text-gray-700">
-                        Stops
-                    </label>
-                    <Button type="button" variant="secondary" size="sm" onClick={addStop}>
-                        + Add Stop
+                <div className="flex gap-2">
+                    <input
+                        type="number"
+                        step="0.000001"
+                        placeholder="Latitud"
+                        value={manualPoint.latitude}
+                        onChange={(e) => setManualPoint({ ...manualPoint, latitude: e.target.value })}
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                        type="number"
+                        step="0.000001"
+                        placeholder="Longitud"
+                        value={manualPoint.longitude}
+                        onChange={(e) => setManualPoint({ ...manualPoint, longitude: e.target.value })}
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Button type="button" variant="secondary" size="sm" onClick={addManualPoint}>
+                        + Añadir
                     </Button>
                 </div>
+            </div>
 
-                {formData.stops.length > 0 && (
-                    <div className="space-y-3">
-                        {formData.stops.map((stop, index) => (
-                            <div
-                                key={stop.id}
-                                className="p-4 border border-gray-200 rounded-lg space-y-3"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <h4 className="font-medium text-gray-900">Stop {index + 1}</h4>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeStop(stop.id)}
-                                        className="text-red-600 hover:text-red-700"
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
+            {/* Points Preview */}
+            <div>
+                <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">
+                        Puntos de la ruta ({points.length})
+                    </label>
+                    {points.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setPoints([])}
+                            className="text-xs text-red-600 hover:text-red-700"
+                        >
+                            Limpiar todos
+                        </button>
+                    )}
+                </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs text-gray-600 mb-1">
-                                            Latitude
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.000001"
-                                            value={stop.position.latitude}
-                                            onChange={(e) =>
-                                                updateStop(stop.id, {
-                                                    position: {
-                                                        ...stop.position,
-                                                        latitude: parseFloat(e.target.value),
-                                                    },
-                                                })
-                                            }
-                                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-gray-600 mb-1">
-                                            Longitude
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.000001"
-                                            value={stop.position.longitude}
-                                            onChange={(e) =>
-                                                updateStop(stop.id, {
-                                                    position: {
-                                                        ...stop.position,
-                                                        longitude: parseFloat(e.target.value),
-                                                    },
-                                                })
-                                            }
-                                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs text-gray-600 mb-1">
-                                        Duration (seconds)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={stop.duration}
-                                        onChange={(e) =>
-                                            updateStop(stop.id, {
-                                                duration: parseInt(e.target.value),
-                                            })
-                                        }
-                                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
+                {points.length > 0 ? (
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Latitud</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Longitud</th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {points.slice(0, 20).map((point, index) => (
+                                    <tr key={index} className="hover:bg-gray-50">
+                                        <td className="px-3 py-2 text-gray-600">{index + 1}</td>
+                                        <td className="px-3 py-2 text-gray-900">{point.latitude.toFixed(6)}</td>
+                                        <td className="px-3 py-2 text-gray-900">{point.longitude.toFixed(6)}</td>
+                                        <td className="px-3 py-2 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={() => removePoint(index)}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                ✕
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {points.length > 20 && (
+                            <div className="px-3 py-2 text-center text-xs text-gray-500 bg-gray-50">
+                                ... y {points.length - 20} puntos más
                             </div>
-                        ))}
+                        )}
+                    </div>
+                ) : (
+                    <div className="p-4 text-center text-gray-500 border border-dashed border-gray-300 rounded-lg">
+                        No hay puntos. Sube un archivo GPX o añade puntos manualmente.
                     </div>
                 )}
             </div>
+
+            {/* Validation Message */}
+            {points.length > 0 && points.length < 2 && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                    ⚠️ Necesitas al menos 2 puntos para crear una ruta válida
+                </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3 pt-4 border-t border-gray-200">
@@ -275,10 +236,10 @@ export const RouteForm: React.FC<RouteFormProps> = ({
                     type="submit"
                     variant="primary"
                     isLoading={isLoading}
-                    disabled={isLoading || formData.points.length === 0}
+                    disabled={isLoading || !name || points.length < 2}
                     className="flex-1"
                 >
-                    Save Route
+                    💾 Guardar Ruta
                 </Button>
                 <Button
                     type="button"
@@ -287,7 +248,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({
                     disabled={isLoading}
                     className="flex-1"
                 >
-                    Cancel
+                    Cancelar
                 </Button>
             </div>
         </form>

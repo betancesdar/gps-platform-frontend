@@ -1,133 +1,82 @@
+'use client';
+
 import { useState } from 'react';
-import { streamService, StreamStatus } from '@/services/stream.service';
+import { streamService, StreamOptions } from '@/services/stream.service';
 import { useDevicesStore } from '@/store/useDevicesStore';
 
-/**
- * Hook for controlling device stream execution via REST API
- * Backend uses REST endpoints for stream control, not WebSocket
- */
 export const useDeviceControl = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { updateDevice, updateDeviceStatus } = useDevicesStore();
+    const updateDeviceStatus = useDevicesStore((state) => state.updateDeviceStatus);
 
-    /**
-     * Start streaming route to device
-     * POST /api/stream/start
-     */
-    const startDevice = async (
-        deviceId: string,
-        routeId: string,
-        speed?: number // m/s, default: 1.4
-    ): Promise<StreamStatus | null> => {
+    const startDevice = async (deviceId: string, routeId: string, speed?: number) => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const result = await streamService.start({
-                deviceId,
-                routeId,
-                speed: speed || 1.4,
-            });
+            const options: StreamOptions = {
+                speed: speed ? speed * 3.6 : 30, // Convert m/s to km/h if provided
+                loop: false,
+            };
+            await streamService.start(deviceId, routeId, options);
             updateDeviceStatus(deviceId, 'EXECUTING');
-            return result;
         } catch (err: any) {
-            const errorMsg = err.response?.data?.message || err.message || 'Error starting stream';
-            setError(errorMsg);
-            throw new Error(errorMsg);
+            const message = err.response?.data?.message || err.message || 'Error starting stream';
+            setError(message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
     };
 
-    /**
-     * Pause stream
-     * POST /api/stream/pause
-     */
-    const pauseDevice = async (deviceId: string): Promise<StreamStatus | null> => {
+    const pauseDevice = async (deviceId: string) => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const result = await streamService.pause(deviceId);
-            return result;
+            await streamService.pause(deviceId);
         } catch (err: any) {
-            const errorMsg = err.response?.data?.message || err.message || 'Error pausing stream';
-            setError(errorMsg);
-            throw new Error(errorMsg);
+            const message = err.response?.data?.message || err.message || 'Error pausing stream';
+            setError(message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
     };
 
-    /**
-     * Resume stream
-     * POST /api/stream/resume
-     */
-    const resumeDevice = async (deviceId: string): Promise<StreamStatus | null> => {
+    const resumeDevice = async (deviceId: string) => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const result = await streamService.resume(deviceId);
-            return result;
+            await streamService.resume(deviceId);
         } catch (err: any) {
-            const errorMsg = err.response?.data?.message || err.message || 'Error resuming stream';
-            setError(errorMsg);
-            throw new Error(errorMsg);
+            const message = err.response?.data?.message || err.message || 'Error resuming stream';
+            setError(message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
     };
 
-    /**
-     * Stop stream
-     * POST /api/stream/stop
-     */
-    const stopDevice = async (deviceId: string): Promise<void> => {
+    const stopDevice = async (deviceId: string) => {
         setIsLoading(true);
         setError(null);
-
         try {
             await streamService.stop(deviceId);
             updateDeviceStatus(deviceId, 'ONLINE');
         } catch (err: any) {
-            const errorMsg = err.response?.data?.message || err.message || 'Error stopping stream';
-            setError(errorMsg);
-            throw new Error(errorMsg);
+            const message = err.response?.data?.message || err.message || 'Error stopping stream';
+            setError(message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
     };
 
-    /**
-     * Get stream status for a device
-     * GET /api/stream/status/:deviceId
-     */
-    const getStreamStatus = async (deviceId: string): Promise<StreamStatus | null> => {
+    const getStreamStatus = async (deviceId: string) => {
         try {
             return await streamService.getStatus(deviceId);
         } catch (err) {
             return null;
         }
-    };
-
-    /**
-     * Start all devices (bulk operation)
-     */
-    const startAll = async (devices: Array<{ id: string; routeId: string }>, speed?: number) => {
-        const promises = devices.map((device) =>
-            startDevice(device.id, device.routeId, speed)
-        );
-        return Promise.allSettled(promises);
-    };
-
-    /**
-     * Stop all devices (bulk operation)
-     */
-    const stopAll = async (deviceIds: string[]) => {
-        const promises = deviceIds.map((deviceId) => stopDevice(deviceId));
-        return Promise.allSettled(promises);
     };
 
     return {
@@ -136,8 +85,6 @@ export const useDeviceControl = () => {
         resumeDevice,
         stopDevice,
         getStreamStatus,
-        startAll,
-        stopAll,
         isLoading,
         error,
     };
