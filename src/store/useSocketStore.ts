@@ -1,25 +1,29 @@
 import { create } from 'zustand';
-import { Socket } from 'socket.io-client';
+
+type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
 
 interface SocketState {
-    socket: Socket | null;
+    socket: WebSocket | null;
     isConnected: boolean;
+    connectionStatus: ConnectionStatus;
     connectionError: string | null;
 
     // Actions
-    setSocket: (socket: Socket | null) => void;
-    setConnected: (isConnected: boolean) => void;
-    setConnectionError: (error: string | null) => void;
+    setSocket: (socket: WebSocket | null) => void;
+    setConnectionStatus: (status: ConnectionStatus, error?: string) => void;
 }
 
 export const useSocketStore = create<SocketState>((set) => ({
     socket: null,
     isConnected: false,
+    connectionStatus: 'disconnected',
     connectionError: null,
 
     setSocket: (socket) => set({ socket }),
 
-    setConnected: (isConnected) => set({ isConnected }),
-
-    setConnectionError: (error) => set({ connectionError: error }),
+    setConnectionStatus: (status, error) => set({
+        connectionStatus: status,
+        isConnected: status === 'connected',
+        connectionError: status === 'error' ? (error || 'Unknown error') : null,
+    }),
 }));

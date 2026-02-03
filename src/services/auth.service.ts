@@ -8,7 +8,7 @@ export const authService = {
      */
     async login(adminId: string): Promise<LoginResponse> {
         const response = await axiosInstance.post<LoginResponse>(
-            '/auth/admin/login',
+            '/auth/login',
             { adminId }
         );
         return response.data;

@@ -1,9 +1,15 @@
 import axiosInstance from '@/lib/axios';
-import { Route, CreateRouteRequest, UpdateRouteRequest, RoutePointDto } from '@/types';
+import { Route, RoutePointDto } from '@/types';
+
+export interface RouteConfig {
+    speed?: number; // m/s
+    loop?: boolean;
+}
 
 export const routesService = {
     /**
-     * Get all routes (sin points para performance)
+     * Get all routes
+     * GET /api/routes
      */
     async getRoutes(): Promise<Route[]> {
         const response = await axiosInstance.get<Route[]>('/routes');
@@ -11,7 +17,8 @@ export const routesService = {
     },
 
     /**
-     * Get route by ID (con todos los points)
+     * Get route by ID
+     * GET /api/routes/:id
      */
     async getRouteById(routeId: string): Promise<Route> {
         const response = await axiosInstance.get<Route>(`/routes/${routeId}`);
@@ -19,62 +26,49 @@ export const routesService = {
     },
 
     /**
-     * Create new route
+     * Create route from points array
+     * POST /api/routes/from-points
      */
-    async createRoute(data: CreateRouteRequest): Promise<Route> {
-        const response = await axiosInstance.post<Route>('/routes', data);
+    async createFromPoints(name: string, points: RoutePointDto[]): Promise<Route> {
+        const response = await axiosInstance.post<Route>('/routes/from-points', {
+            name,
+            points,
+        });
         return response.data;
     },
 
     /**
-     * Update route (solo name y metadata)
+     * Create route from GPX file
+     * POST /api/routes/from-gpx
      */
-    async updateRoute(data: UpdateRouteRequest): Promise<Route> {
-        const { id, ...updateData } = data;
-        const response = await axiosInstance.patch<Route>(`/routes/${id}`, updateData);
+    async createFromGPX(file: File, name: string): Promise<Route> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('name', name);
+
+        const response = await axiosInstance.post<Route>('/routes/from-gpx', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
         return response.data;
     },
 
     /**
-     * Update stop duration for a specific point
+     * Update route configuration (speed, loop)
+     * PUT /api/routes/:id/config
      */
-    async updatePointStop(
-        routeId: string,
-        pointIndex: number,
-        waitDuration: number
-    ): Promise<Route> {
-        const response = await axiosInstance.patch<Route>(
-            `/routes/${routeId}/points/${pointIndex}/stop`,
-            { waitDuration }
-        );
+    async updateConfig(routeId: string, config: RouteConfig): Promise<Route> {
+        const response = await axiosInstance.put<Route>(`/routes/${routeId}/config`, config);
         return response.data;
     },
 
     /**
      * Delete route
+     * DELETE /api/routes/:id
      */
     async deleteRoute(routeId: string): Promise<{ success: boolean }> {
         const response = await axiosInstance.delete<{ success: boolean }>(`/routes/${routeId}`);
-        return response.data;
-    },
-
-    /**
-     * Upload GPX file
-     * IMPORTANTE: El endpoint es /routes/upload (NO /routes/upload-gpx)
-     */
-    async uploadGPX(file: File, name: string, metadata?: any): Promise<Route> {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('name', name);
-        if (metadata) {
-            formData.append('metadata', JSON.stringify(metadata));
-        }
-
-        const response = await axiosInstance.post<Route>('/routes/upload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
         return response.data;
     },
 };

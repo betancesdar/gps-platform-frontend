@@ -1,98 +1,107 @@
-import { useEffect } from 'react';
-import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
+import { useEffect, useCallback } from 'react';
+import {
+    connectSocket,
+    disconnectSocket,
+    getSocket,
+    onMessage,
+    onStatus,
+    clearHandlers,
+    isConnected,
+    WSMessage,
+    MockLocationPayload,
+} from '@/lib/socket';
 import { useSocketStore } from '@/store/useSocketStore';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import {
-    DeviceOnlineEvent,
-    DeviceOfflineEvent,
-    DeviceStatusUpdateEvent,
-    ExecutionProgressUpdateEvent,
-} from '@/types';
 
 export const useSocket = () => {
-    const { setSocket, setConnected, setConnectionError } = useSocketStore();
-    const { updateDeviceStatus, updateDevice } = useDevicesStore();
+    const { setSocket, setConnectionStatus } = useSocketStore();
+    const { updateDeviceStatus } = useDevicesStore();
     const token = useAuthStore((state) => state.token);
 
     useEffect(() => {
-        if (!token) return;
+        if (!token) {
+            console.log('⚠️ No token available, skipping WebSocket connection');
+            return;
+        }
 
-        // Conectar socket con token
+        // Connect to WebSocket
         const socket = connectSocket(token);
         setSocket(socket);
 
-        // Connection events
-        socket.on('connect', () => {
-            console.log('✅ Socket connected to /devices');
-            setConnected(true);
-            setConnectionError(null);
+        // Handle connection status changes
+        const unsubscribeStatus = onStatus((status, error) => {
+            console.log('🔌 WebSocket status:', status, error || '');
+            setConnectionStatus(status, error);
         });
 
-        socket.on('disconnect', () => {
-            console.log('❌ Socket disconnected');
-            setConnected(false);
-        });
+        // Handle incoming messages
+        const unsubscribeMessage = onMessage((message: WSMessage) => {
+            switch (message.type) {
+                case 'CONNECTED':
+                    console.log('✅ WebSocket handshake complete');
+                    break;
 
-        socket.on('connect_error', (error) => {
-            console.error('🔴 Socket connection error:', error);
-            setConnectionError(error.message);
-        });
+                case 'MOCK_LOCATION':
+                    // Handle location updates for devices
+                    const location = message.payload as MockLocationPayload;
+                    console.log('📍 Location update:', location);
+                    // You can emit this to a device location store if needed
+                    break;
 
-        // Device events (BACKEND REAL - nombres exactos)
-        socket.on('DEVICE_ONLINE', (data: DeviceOnlineEvent) => {
-            console.log('📱 Device online:', data.deviceId, data.deviceName);
-            updateDeviceStatus(data.deviceId, 'ONLINE');
-        });
+                case 'STREAM_STARTED':
+                    console.log('▶️ Stream started:', message.payload);
+                    if (message.payload?.deviceId) {
+                        updateDeviceStatus(message.payload.deviceId, 'EXECUTING');
+                    }
+                    break;
 
-        socket.on('DEVICE_OFFLINE', (data: DeviceOfflineEvent) => {
-            console.log('📱 Device offline:', data.deviceId);
-            updateDeviceStatus(data.deviceId, 'OFFLINE');
-        });
+                case 'STREAM_PAUSED':
+                    console.log('⏸️ Stream paused:', message.payload);
+                    break;
 
-        socket.on('DEVICE_STATUS_UPDATE', (data: DeviceStatusUpdateEvent) => {
-            console.log('📊 Device status update:', data);
-            // Actualizar el dispositivo con el nuevo estado
-            updateDevice(data.deviceId, {
-                status: data.status as any,
-                lastSeen: new Date(data.timestamp),
-            });
-        });
+                case 'STREAM_RESUMED':
+                    console.log('▶️ Stream resumed:', message.payload);
+                    break;
 
-        socket.on('EXECUTION_PROGRESS_UPDATE', (data: ExecutionProgressUpdateEvent) => {
-            console.log('⏱️ Execution progress:', data.deviceId, 'point', data.currentPointIndex);
-            // Puedes actualizar el progreso en el store de devices si lo necesitas
-            updateDevice(data.deviceId, {
-                // Añade campos personalizados si es necesario
-                ...data,
-            });
+                case 'STREAM_STOPPED':
+                    console.log('⏹️ Stream stopped:', message.payload);
+                    if (message.payload?.deviceId) {
+                        updateDeviceStatus(message.payload.deviceId, 'ONLINE');
+                    }
+                    break;
+
+                case 'STREAM_COMPLETED':
+                    console.log('✅ Stream completed:', message.payload);
+                    if (message.payload?.deviceId) {
+                        updateDeviceStatus(message.payload.deviceId, 'ONLINE');
+                    }
+                    break;
+
+                case 'ERROR':
+                    console.error('❌ WebSocket error from server:', message.message);
+                    break;
+
+                default:
+                    console.log('📨 Unknown message type:', message.type);
+            }
         });
 
         // Cleanup on unmount
         return () => {
-            socket.off('connect');
-            socket.off('disconnect');
-            socket.off('connect_error');
-            socket.off('DEVICE_ONLINE');
-            socket.off('DEVICE_OFFLINE');
-            socket.off('DEVICE_STATUS_UPDATE');
-            socket.off('EXECUTION_PROGRESS_UPDATE');
+            unsubscribeStatus();
+            unsubscribeMessage();
+            clearHandlers();
             disconnectSocket();
             setSocket(null);
-            setConnected(false);
+            setConnectionStatus('disconnected');
         };
-    }, [
-        token,
-        setSocket,
-        setConnected,
-        setConnectionError,
-        updateDeviceStatus,
-        updateDevice,
-    ]);
+    }, [token, setSocket, setConnectionStatus, updateDeviceStatus]);
 
     return {
         socket: getSocket(),
         isConnected: useSocketStore((state) => state.isConnected),
+        connectionStatus: useSocketStore((state) => state.connectionStatus),
         connectionError: useSocketStore((state) => state.connectionError),
     };
 };

@@ -1,188 +1,115 @@
 import { useState } from 'react';
-import { getSocket } from '@/lib/socket';
+import { streamService, StreamStatus } from '@/services/stream.service';
 import { useDevicesStore } from '@/store/useDevicesStore';
-import {
-    StartRoutePayload,
-    PauseRoutePayload,
-    ResumeRoutePayload,
-    StopRoutePayload,
-    UpdateSpeedPayload,
-    SocketResponse,
-    ExecutionPlan,
-    ExecutionState,
-} from '@/types';
 
+/**
+ * Hook for controlling device stream execution via REST API
+ * Backend uses REST endpoints for stream control, not WebSocket
+ */
 export const useDeviceControl = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { updateDevice } = useDevicesStore();
+    const { updateDevice, updateDeviceStatus } = useDevicesStore();
 
     /**
-     * Start route execution via WebSocket
+     * Start streaming route to device
+     * POST /api/stream/start
      */
     const startDevice = async (
         deviceId: string,
         routeId: string,
         speed?: number // m/s, default: 1.4
-    ): Promise<ExecutionPlan | null> => {
+    ): Promise<StreamStatus | null> => {
         setIsLoading(true);
         setError(null);
 
-        return new Promise((resolve, reject) => {
-            const socket = getSocket();
-            if (!socket || !socket.connected) {
-                setIsLoading(false);
-                setError('Socket not connected');
-                reject(new Error('Socket not connected'));
-                return;
-            }
-
-            const payload: StartRoutePayload = {
+        try {
+            const result = await streamService.start({
                 deviceId,
                 routeId,
-                speed: speed || 1.4, // default walking speed
-            };
-
-            socket.emit('START_ROUTE', payload, (response: SocketResponse<ExecutionPlan>) => {
-                setIsLoading(false);
-                if (response.success) {
-                    updateDevice(deviceId, { status: 'EXECUTING' });
-                    resolve(response.executionPlan || null);
-                } else {
-                    const errorMsg = response.message || 'Error starting route';
-                    setError(errorMsg);
-                    reject(new Error(errorMsg));
-                }
+                speed: speed || 1.4,
             });
-        });
+            updateDeviceStatus(deviceId, 'EXECUTING');
+            return result;
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.message || err.message || 'Error starting stream';
+            setError(errorMsg);
+            throw new Error(errorMsg);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     /**
-     * Pause route execution via WebSocket
+     * Pause stream
+     * POST /api/stream/pause
      */
-    const pauseDevice = async (deviceId: string): Promise<ExecutionState | null> => {
+    const pauseDevice = async (deviceId: string): Promise<StreamStatus | null> => {
         setIsLoading(true);
         setError(null);
 
-        return new Promise((resolve, reject) => {
-            const socket = getSocket();
-            if (!socket || !socket.connected) {
-                setIsLoading(false);
-                setError('Socket not connected');
-                reject(new Error('Socket not connected'));
-                return;
-            }
-
-            const payload: PauseRoutePayload = { deviceId };
-
-            socket.emit('PAUSE_ROUTE', payload, (response: SocketResponse<ExecutionState>) => {
-                setIsLoading(false);
-                if (response.success) {
-                    resolve(response.state || null);
-                } else {
-                    const errorMsg = response.message || 'Error pausing route';
-                    setError(errorMsg);
-                    reject(new Error(errorMsg));
-                }
-            });
-        });
+        try {
+            const result = await streamService.pause(deviceId);
+            return result;
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.message || err.message || 'Error pausing stream';
+            setError(errorMsg);
+            throw new Error(errorMsg);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     /**
-     * Resume route execution via WebSocket
+     * Resume stream
+     * POST /api/stream/resume
      */
-    const resumeDevice = async (deviceId: string): Promise<ExecutionState | null> => {
+    const resumeDevice = async (deviceId: string): Promise<StreamStatus | null> => {
         setIsLoading(true);
         setError(null);
 
-        return new Promise((resolve, reject) => {
-            const socket = getSocket();
-            if (!socket || !socket.connected) {
-                setIsLoading(false);
-                setError('Socket not connected');
-                reject(new Error('Socket not connected'));
-                return;
-            }
-
-            const payload: ResumeRoutePayload = { deviceId };
-
-            socket.emit('RESUME_ROUTE', payload, (response: SocketResponse<ExecutionState>) => {
-                setIsLoading(false);
-                if (response.success) {
-                    resolve(response.state || null);
-                } else {
-                    const errorMsg = response.message || 'Error resuming route';
-                    setError(errorMsg);
-                    reject(new Error(errorMsg));
-                }
-            });
-        });
+        try {
+            const result = await streamService.resume(deviceId);
+            return result;
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.message || err.message || 'Error resuming stream';
+            setError(errorMsg);
+            throw new Error(errorMsg);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     /**
-     * Stop route execution via WebSocket
+     * Stop stream
+     * POST /api/stream/stop
      */
     const stopDevice = async (deviceId: string): Promise<void> => {
         setIsLoading(true);
         setError(null);
 
-        return new Promise((resolve, reject) => {
-            const socket = getSocket();
-            if (!socket || !socket.connected) {
-                setIsLoading(false);
-                setError('Socket not connected');
-                reject(new Error('Socket not connected'));
-                return;
-            }
-
-            const payload: StopRoutePayload = { deviceId };
-
-            socket.emit('STOP_ROUTE', payload, (response: SocketResponse) => {
-                setIsLoading(false);
-                if (response.success) {
-                    updateDevice(deviceId, { status: 'ONLINE' });
-                    resolve();
-                } else {
-                    const errorMsg = response.message || 'Error stopping route';
-                    setError(errorMsg);
-                    reject(new Error(errorMsg));
-                }
-            });
-        });
+        try {
+            await streamService.stop(deviceId);
+            updateDeviceStatus(deviceId, 'ONLINE');
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.message || err.message || 'Error stopping stream';
+            setError(errorMsg);
+            throw new Error(errorMsg);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     /**
-     * Update execution speed via WebSocket
+     * Get stream status for a device
+     * GET /api/stream/status/:deviceId
      */
-    const updateSpeed = async (deviceId: string, speed: number): Promise<ExecutionPlan | null> => {
-        setIsLoading(true);
-        setError(null);
-
-        return new Promise((resolve, reject) => {
-            const socket = getSocket();
-            if (!socket || !socket.connected) {
-                setIsLoading(false);
-                setError('Socket not connected');
-                reject(new Error('Socket not connected'));
-                return;
-            }
-
-            const payload: UpdateSpeedPayload = {
-                deviceId,
-                speed, // m/s
-            };
-
-            socket.emit('UPDATE_SPEED', payload, (response: SocketResponse<ExecutionPlan>) => {
-                setIsLoading(false);
-                if (response.success) {
-                    resolve(response.executionPlan || null);
-                } else {
-                    const errorMsg = response.message || 'Error updating speed';
-                    setError(errorMsg);
-                    reject(new Error(errorMsg));
-                }
-            });
-        });
+    const getStreamStatus = async (deviceId: string): Promise<StreamStatus | null> => {
+        try {
+            return await streamService.getStatus(deviceId);
+        } catch (err) {
+            return null;
+        }
     };
 
     /**
@@ -208,7 +135,7 @@ export const useDeviceControl = () => {
         pauseDevice,
         resumeDevice,
         stopDevice,
-        updateSpeed,
+        getStreamStatus,
         startAll,
         stopAll,
         isLoading,
