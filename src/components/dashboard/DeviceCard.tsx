@@ -26,12 +26,12 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
     onSelect,
     isSelected = false,
 }) => {
-    const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading } = useDeviceControl();
+    const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading, error } = useDeviceControl();
     const routes = useRoutesStore((state) => state.routes);
     const safeRoutes = Array.isArray(routes) ? routes : [];
 
     const [selectedRouteId, setSelectedRouteId] = useState<string>('');
-    const [speed, setSpeed] = useState<number>(1.4); // m/s, default walking speed
+    const [speed, setSpeed] = useState<number>(30); // km/h
 
     const handleStart = async () => {
         if (!selectedRouteId) {
@@ -40,37 +40,38 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         }
         try {
             await startDevice(device.id, selectedRouteId, speed);
-        } catch (error) {
-            console.error('Failed to start device:', error);
+        } catch (err: any) {
+            alert(`Error al iniciar: ${err.response?.data?.message || err.message}`);
         }
     };
 
     const handlePause = async () => {
         try {
             await pauseDevice(device.id);
-        } catch (error) {
-            console.error('Failed to pause device:', error);
+        } catch (err: any) {
+            alert(`Error al pausar: ${err.response?.data?.message || err.message}`);
         }
     };
 
     const handleResume = async () => {
         try {
             await resumeDevice(device.id);
-        } catch (error) {
-            console.error('Failed to resume device:', error);
+        } catch (err: any) {
+            alert(`Error al reanudar: ${err.response?.data?.message || err.message}`);
         }
     };
 
     const handleStop = async () => {
         try {
             await stopDevice(device.id);
-        } catch (error) {
-            console.error('Failed to stop device:', error);
+        } catch (err: any) {
+            alert(`Error al detener: ${err.response?.data?.message || err.message}`);
         }
     };
 
     const isExecuting = device.status === 'EXECUTING';
     const isOnline = device.status === 'ONLINE';
+    const isOffline = device.status === 'OFFLINE';
 
     return (
         <Card
@@ -88,6 +89,11 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                         <p className="text-sm text-gray-500">
                             ID: {device.id ? device.id.slice(0, 8) : 'N/A'}...
                         </p>
+                        {device.platform && (
+                            <p className="text-xs text-gray-400">
+                                {device.platform} {device.appVersion && `v${device.appVersion}`}
+                            </p>
+                        )}
                     </div>
                     <StatusBadge status={device.status} />
                 </div>
@@ -99,8 +105,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                     </div>
                 )}
 
-                {/* Route Selection (only when ONLINE and not EXECUTING) */}
-                {isOnline && !isExecuting && (
+                {/* Route Selection - Show for ALL devices, not just ONLINE */}
+                {!isExecuting && (
                     <div className="py-2 border-t border-gray-100 space-y-2">
                         <label className="text-sm text-gray-600 block">Seleccionar Ruta:</label>
                         <select
@@ -108,34 +114,45 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                             onChange={(e) => setSelectedRouteId(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onFocus={(e) => e.stopPropagation()}
                         >
                             <option value="">-- Selecciona una ruta --</option>
                             {safeRoutes.map((route) => (
                                 <option key={route.id} value={route.id}>
-                                    {route.name} ({route.points?.length || 0} puntos)
+                                    {route.name} ({route.pointCount || route.points?.length || 0} pts)
                                 </option>
                             ))}
                         </select>
 
                         <div>
                             <label className="text-sm text-gray-600 block mb-1">
-                                Velocidad: {speedHelpers.msToKmh(speed).toFixed(1)} km/h
+                                Velocidad: {speed} km/h
                             </label>
                             <input
                                 type="range"
-                                min="0.5"
-                                max="5"
-                                step="0.1"
+                                min="5"
+                                max="120"
+                                step="5"
                                 value={speed}
-                                onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                                onChange={(e) => setSpeed(parseInt(e.target.value))}
                                 onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onFocus={(e) => e.stopPropagation()}
                                 className="w-full"
                             />
                             <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>1.8 km/h</span>
-                                <span>18 km/h</span>
+                                <span>5 km/h</span>
+                                <span>120 km/h</span>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Offline Warning */}
+                {isOffline && (
+                    <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                        ⚠️ Dispositivo no conectado al WebSocket. Inicia la app Android primero.
                     </div>
                 )}
 
@@ -149,16 +166,15 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 e.stopPropagation();
                                 handleStart();
                             }}
-                            disabled={!isOnline || !selectedRouteId || isLoading}
-                            isLoading={isLoading}
+                            disabled={isLoading || !selectedRouteId}
                             className="flex-1"
                         >
-                            ▶ Iniciar Ruta
+                            {isLoading ? '...' : '▶️ Iniciar'}
                         </Button>
                     ) : (
                         <>
                             <Button
-                                variant="secondary"
+                                variant="warning"
                                 size="sm"
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -167,10 +183,10 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 disabled={isLoading}
                                 className="flex-1"
                             >
-                                ⏸ Pausar
+                                ⏸️ Pausar
                             </Button>
                             <Button
-                                variant="success"
+                                variant="primary"
                                 size="sm"
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -179,7 +195,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 disabled={isLoading}
                                 className="flex-1"
                             >
-                                ▶ Reanudar
+                                ▶️ Reanudar
                             </Button>
                             <Button
                                 variant="danger"
@@ -191,7 +207,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 disabled={isLoading}
                                 className="flex-1"
                             >
-                                ⏹ Detener
+                                ⏹️ Detener
                             </Button>
                         </>
                     )}

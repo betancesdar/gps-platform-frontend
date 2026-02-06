@@ -6,10 +6,18 @@
   --color-foreground: #111827;
 }
 
+/* Prevent scrollbar flickering */
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* Custom marker animation */
@@ -61,4 +69,21 @@ body {
 
 .animation-delay-4000 {
   animation-delay: 4s;
+}
+
+/* Prevent layout shift */
+* {
+  box-sizing: border-box;
+}
+
+/* Stable scrollbars */
+.overflow-stable {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* Prevent map from causing layout shifts */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
 }

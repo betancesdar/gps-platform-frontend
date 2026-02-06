@@ -11,6 +11,7 @@ import { RouteAssignment } from '@/components/routes/RouteAssignment';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Route, CreateRouteRequest } from '@/types';
+import { RoutePreviewPlayer } from '@/components/routes/RoutePreviewPlayer';
 
 export default function RoutesPage() {
     const router = useRouter();
@@ -19,7 +20,9 @@ export default function RoutesPage() {
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [editingRoute, setEditingRoute] = useState<Route | null>(null);
+    const [previewRoute, setPreviewRoute] = useState<Route | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     // Initialize auth
@@ -108,6 +111,45 @@ export default function RoutesPage() {
         setIsEditModalOpen(true);
     };
 
+    const handleAddressRouteCreated = async (routeId: string) => {
+        try {
+            // Fetch the full route with points
+            const fullRoute = await routesService.getRouteById(routeId);
+
+            // Add to routes list
+            addRoute(fullRoute);
+
+            // Close create modal
+            setIsCreateModalOpen(false);
+
+            // Open preview modal
+            setPreviewRoute(fullRoute);
+            setIsPreviewModalOpen(true);
+        } catch (error) {
+            console.error('Error loading created route:', error);
+            // Still refresh routes list
+            const updatedRoutes = await routesService.getRoutes();
+            setRoutes(updatedRoutes);
+            setIsCreateModalOpen(false);
+        }
+    };
+
+    const handlePreviewRoute = async (route: Route) => {
+        try {
+            // Fetch full route with all points if not already loaded
+            if (!route.points || route.points.length === 0) {
+                const fullRoute = await routesService.getRouteById(route.id);
+                setPreviewRoute(fullRoute);
+            } else {
+                setPreviewRoute(route);
+            }
+            setIsPreviewModalOpen(true);
+        } catch (error) {
+            console.error('Error loading route for preview:', error);
+            alert('Failed to load route for preview');
+        }
+    };
+
     if (authLoading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -170,6 +212,7 @@ export default function RoutesPage() {
                         <RouteList
                             onEditRoute={openEditModal}
                             onDeleteRoute={handleDeleteRoute}
+                            onPreviewRoute={handlePreviewRoute}
                         />
                     </div>
 
@@ -189,6 +232,7 @@ export default function RoutesPage() {
             >
                 <RouteForm
                     onSubmit={handleCreateRoute}
+                    onAddressRouteCreated={handleAddressRouteCreated}
                     onCancel={() => setIsCreateModalOpen(false)}
                     isLoading={isSaving}
                 />
@@ -218,6 +262,21 @@ export default function RoutesPage() {
                         }}
                         isLoading={isSaving}
                     />
+                )}
+            </Modal>
+
+            {/* Route Preview Modal */}
+            <Modal
+                isOpen={isPreviewModalOpen}
+                onClose={() => {
+                    setIsPreviewModalOpen(false);
+                    setPreviewRoute(null);
+                }}
+                title="Route Preview"
+                size="xl"
+            >
+                {previewRoute && (
+                    <RoutePreviewPlayer route={previewRoute} />
                 )}
             </Modal>
         </div>

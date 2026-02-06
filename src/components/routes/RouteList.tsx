@@ -11,12 +11,14 @@ interface RouteListProps {
     onSelectRoute?: (routeId: string) => void;
     onEditRoute?: (route: Route) => void;
     onDeleteRoute?: (routeId: string) => void;
+    onPreviewRoute?: (route: Route) => void;
 }
 
 export const RouteList: React.FC<RouteListProps> = ({
     onSelectRoute,
     onEditRoute,
     onDeleteRoute,
+    onPreviewRoute,
 }) => {
     const routes = useRoutesStore((state) => state.routes);
     const selectedRouteId = useRoutesStore((state) => state.selectedRouteId);
@@ -110,6 +112,17 @@ export const RouteList: React.FC<RouteListProps> = ({
 
                             {/* Actions */}
                             <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onPreviewRoute?.(route);
+                                    }}
+                                    className="flex-1"
+                                >
+                                    👁️ Preview
+                                </Button>
                                 <Button
                                     variant="primary"
                                     size="sm"
