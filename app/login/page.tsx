@@ -169,7 +169,10 @@ export default function LoginPage() {
 
                 {/* Footer */}
                 <p className="text-center text-white/80 text-sm mt-6">
-                    Plataforma GPS © 2024 - Control en tiempo real
+                    Plataforma GPS © 2026 - Control en tiempo real
+                </p>
+                <p className="text-center text-white/80 text-sm mt-6">
+                    Desarrollado por: <a href="https://github.com/alexb1998" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-200 underline">Alex Betances</a>
                 </p>
             </div>
         </div>
