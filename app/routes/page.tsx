@@ -11,7 +11,12 @@ import { RouteAssignment } from '@/components/routes/RouteAssignment';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Route, CreateRouteRequest } from '@/types';
-import { RoutePreviewPlayer } from '@/components/routes/RoutePreviewPlayer';
+import dynamic from 'next/dynamic';
+
+const RoutePreviewPlayer = dynamic(
+    () => import('@/components/routes/RoutePreviewPlayer').then((mod) => mod.RoutePreviewPlayer),
+    { ssr: false }
+);
 
 export default function RoutesPage() {
     const router = useRouter();

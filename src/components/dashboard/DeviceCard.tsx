@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Device } from '@/services/devices.service';
-import { speedHelpers } from '@/types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/StatusBadge';
@@ -26,7 +25,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
     onSelect,
     isSelected = false,
 }) => {
-    const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading, error } = useDeviceControl();
+    const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading } = useDeviceControl();
     const routes = useRoutesStore((state) => state.routes);
     const safeRoutes = Array.isArray(routes) ? routes : [];
 
@@ -41,31 +40,17 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         try {
             await startDevice(device.id, selectedRouteId, speed);
         } catch (err: any) {
-            alert(`Error al iniciar: ${err.response?.data?.message || err.message}`);
+            alert(`Error al iniciar: ${err.message}`);
         }
     };
 
-    const handlePause = async () => {
+    const handleControl = async (action: 'pause' | 'resume' | 'stop') => {
         try {
-            await pauseDevice(device.id);
+            if (action === 'pause') await pauseDevice(device.id);
+            if (action === 'resume') await resumeDevice(device.id);
+            if (action === 'stop') await stopDevice(device.id);
         } catch (err: any) {
-            alert(`Error al pausar: ${err.response?.data?.message || err.message}`);
-        }
-    };
-
-    const handleResume = async () => {
-        try {
-            await resumeDevice(device.id);
-        } catch (err: any) {
-            alert(`Error al reanudar: ${err.response?.data?.message || err.message}`);
-        }
-    };
-
-    const handleStop = async () => {
-        try {
-            await stopDevice(device.id);
-        } catch (err: any) {
-            alert(`Error al detener: ${err.response?.data?.message || err.message}`);
+            alert(`Error: ${err.message}`);
         }
     };
 
@@ -75,60 +60,74 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
 
     return (
         <Card
-            className={`cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
-            hover
+            className={`cursor-pointer transition-all duration-300 transform ${isSelected ? 'ring-2 ring-blue-500 scale-[1.02] shadow-xl' : 'hover:shadow-lg hover:-translate-y-1'}`}
+            // hover // Handled manually for better control
             onClick={() => onSelect?.(device.id)}
         >
-            <div className="space-y-3">
+            <div className="space-y-4">
                 {/* Header */}
-                <div className="flex items-start justify-between">
-                    <div>
-                        <h3 className="font-semibold text-lg text-gray-900">
-                            {device.name || 'Dispositivo sin nombre'}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                            ID: {device.id ? device.id.slice(0, 8) : 'N/A'}...
-                        </p>
-                        {device.platform && (
-                            <p className="text-xs text-gray-400">
-                                {device.platform} {device.appVersion && `v${device.appVersion}`}
+                <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm ${isOnline || isExecuting ? 'bg-gradient-to-br from-green-100 to-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                            {device.platform?.toLowerCase().includes('web') ? '💻' : '📱'}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-gray-900 leading-tight">
+                                {device.name || 'Dispositivo sin nombre'}
+                            </h3>
+                            <p className="text-xs text-gray-500 font-mono mt-0.5">
+                                {device.id?.slice(0, 8)}...
                             </p>
-                        )}
+                        </div>
                     </div>
                     <StatusBadge status={device.status} />
                 </div>
 
-                {/* Last Seen */}
-                {device.lastSeen && (
-                    <div className="text-xs text-gray-500">
-                        Última conexión: {dayjs(device.lastSeen).fromNow()}
+                {/* Device Info */}
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                    <div className="bg-gray-50 p-2 rounded-lg">
+                        <span className="block text-gray-400 text-[10px] uppercase font-bold">Platform</span>
+                        {device.platform || 'Unknown'} {device.appVersion && `v${device.appVersion}`}
                     </div>
-                )}
+                    <div className="bg-gray-50 p-2 rounded-lg">
+                        <span className="block text-gray-400 text-[10px] uppercase font-bold">Last Seen</span>
+                        {device.lastSeen ? dayjs(device.lastSeen).fromNow() : 'Never'}
+                    </div>
+                </div>
 
-                {/* Route Selection - Show for ALL devices, not just ONLINE */}
-                {!isExecuting && (
-                    <div className="py-2 border-t border-gray-100 space-y-2">
-                        <label className="text-sm text-gray-600 block">Seleccionar Ruta:</label>
-                        <select
-                            value={selectedRouteId}
-                            onChange={(e) => setSelectedRouteId(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                            onClick={(e) => e.stopPropagation()}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onFocus={(e) => e.stopPropagation()}
-                        >
-                            <option value="">-- Selecciona una ruta --</option>
-                            {safeRoutes.map((route) => (
-                                <option key={route.id} value={route.id}>
-                                    {route.name} ({route.pointCount || route.points?.length || 0} pts)
-                                </option>
-                            ))}
-                        </select>
+                {/* Controls Area */}
+                {!isExecuting ? (
+                    <div
+                        className="space-y-3 pt-2 animate-in slide-in-from-top-2 duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Route</label>
+                            <div className="relative">
+                                <select
+                                    value={selectedRouteId}
+                                    onChange={(e) => setSelectedRouteId(e.target.value)}
+                                    className="w-full pl-3 pr-8 py-2 bg-gray-50 border-0 rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
+                                    disabled={safeRoutes.length === 0}
+                                >
+                                    <option value="">
+                                        {safeRoutes.length === 0 ? '-- No routes available --' : 'Select a route to run...'}
+                                    </option>
+                                    {safeRoutes.map((route) => (
+                                        <option key={route.id} value={route.id}>
+                                            📍 {route.name} ({route.pointCount || 0} pts)
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">▼</div>
+                            </div>
+                        </div>
 
-                        <div>
-                            <label className="text-sm text-gray-600 block mb-1">
-                                Velocidad: {speed} km/h
-                            </label>
+                        <div className="space-y-1.5">
+                            <div className="flex justify-between items-center">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Speed</label>
+                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{speed} km/h</span>
+                            </div>
                             <input
                                 type="range"
                                 min="5"
@@ -136,82 +135,53 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 step="5"
                                 value={speed}
                                 onChange={(e) => setSpeed(parseInt(e.target.value))}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onFocus={(e) => e.stopPropagation()}
-                                className="w-full"
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                             />
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>5 km/h</span>
-                                <span>120 km/h</span>
-                            </div>
                         </div>
-                    </div>
-                )}
 
-                {/* Offline Warning */}
-                {isOffline && (
-                    <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                        ⚠️ Dispositivo no conectado al WebSocket. Inicia la app Android primero.
-                    </div>
-                )}
-
-                {/* Control Buttons */}
-                <div className="flex gap-2 pt-2 border-t border-gray-100">
-                    {!isExecuting ? (
                         <Button
                             variant="success"
-                            size="sm"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleStart();
-                            }}
-                            disabled={isLoading || !selectedRouteId}
-                            className="flex-1"
+                            className="w-full justify-center shadow-lg shadow-green-500/20 py-2.5 font-bold"
+                            onClick={handleStart}
+                            disabled={isLoading || !selectedRouteId || isOffline}
                         >
-                            {isLoading ? '...' : '▶️ Iniciar'}
+                            {isOffline ? 'Device Offline' : '▶️ Start Simulation'}
                         </Button>
-                    ) : (
-                        <>
-                            <Button
-                                variant="warning"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePause();
-                                }}
-                                disabled={isLoading}
-                                className="flex-1"
-                            >
-                                ⏸️ Pausar
-                            </Button>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleResume();
-                                }}
-                                disabled={isLoading}
-                                className="flex-1"
-                            >
-                                ▶️ Reanudar
-                            </Button>
-                            <Button
-                                variant="danger"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStop();
-                                }}
-                                disabled={isLoading}
-                                className="flex-1"
-                            >
-                                ⏹️ Detener
-                            </Button>
-                        </>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    <div
+                        className="grid grid-cols-2 gap-2 pt-2 animate-in slide-in-from-top-2 duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="w-full justify-center font-semibold"
+                            onClick={() => handleControl('pause')}
+                            disabled={isLoading}
+                        >
+                            ⏸️ Pause
+                        </Button>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            className="w-full justify-center font-semibold"
+                            onClick={() => handleControl('resume')}
+                            disabled={isLoading}
+                        >
+                            ▶️ Resume
+                        </Button>
+                        <Button
+                            variant="danger"
+                            size="sm"
+                            className="col-span-2 w-full justify-center shadow-lg shadow-red-500/20 py-2 font-bold"
+                            onClick={() => handleControl('stop')}
+                            disabled={isLoading}
+                        >
+                            ⏹️ Stop Simulation
+                        </Button>
+                    </div>
+                )}
             </div>
         </Card>
     );

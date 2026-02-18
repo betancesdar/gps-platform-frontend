@@ -15,6 +15,10 @@ export interface BackendDevice {
     lastSeenAt?: string;
     isConnected: boolean;
     user?: string;
+    assignedRoute?: {
+        id: string;
+        name: string;
+    };
 }
 
 // Frontend device format (mapped)
@@ -27,6 +31,10 @@ export interface Device {
     updatedAt: Date;
     platform?: string;
     appVersion?: string;
+    assignedRoute?: {
+        id: string;
+        name: string;
+    };
 }
 
 // Transform backend device to frontend format
@@ -40,6 +48,7 @@ function transformDevice(backendDevice: BackendDevice): Device {
         updatedAt: new Date(backendDevice.registeredAt),
         platform: backendDevice.platform,
         appVersion: backendDevice.appVersion,
+        assignedRoute: backendDevice.assignedRoute,
     };
 }
 
@@ -107,5 +116,16 @@ export const devicesService = {
     async deleteDevice(deviceId: string): Promise<{ success: boolean }> {
         const response = await axiosInstance.delete<ApiResponse<any>>(`/devices/${deviceId}`);
         return { success: response.data.success };
+    },
+
+    /**
+     * Assign route to device (without starting stream)
+     * PUT /api/devices/:deviceId/route
+     */
+    async assignRoute(deviceId: string, routeId: string): Promise<Device> {
+        const response = await axiosInstance.put<ApiResponse<BackendDevice>>(`/devices/${deviceId}/route`, {
+            routeId
+        });
+        return transformDevice(response.data.data);
     },
 };

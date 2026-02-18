@@ -65,4 +65,28 @@ export const geocodeService = {
 
         return response.data;
     },
+
+    /**
+     * Create a route with multiple stops (mixed addresses/coords)
+     * POST /api/routes/from-addresses-with-stops
+     */
+    // Updated interface based on backend guide
+    async createRouteWithStops(params: {
+        name?: string;
+        profile?: string;
+        pointSpacingMeters?: number;
+        stops: Array<{
+            text?: string;       // Address to geocode (Optional if lat/lng provided)
+            lat?: number;        // Manual Latitude (Optional if text provided)
+            lng?: number;        // Manual Longitude (Optional if text provided)
+            label?: string;      // UI Label for the stop
+            waitSeconds?: number; // Duration to wait at this stop (seconds)
+        }>;
+    }): Promise<CreateFromAddressesResponse> {
+        const response = await axiosInstance.post<CreateFromAddressesResponse>(
+            '/routes/from-addresses-with-stops',
+            params
+        );
+        return response.data;
+    },
 };

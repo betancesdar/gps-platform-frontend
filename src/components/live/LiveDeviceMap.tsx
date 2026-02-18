@@ -22,8 +22,9 @@ function createDeviceIcon(bearing: number, isStale: boolean) {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+                filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
                 opacity: ${opacity};
+                transition: all 0.3s ease;
             ">
                 <div style="font-size: 28px;">
                     🚗
@@ -45,6 +46,7 @@ function createDeviceIcon(bearing: number, isStale: boolean) {
                     font-size: 10px;
                     font-weight: bold;
                     border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                 ">!</div>
             ` : ''}
         `,
@@ -104,28 +106,30 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
     return (
         <div className={`space-y-4 ${className}`}>
             {/* Controls */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-2">
                         📍 Live Device Tracking
                     </h3>
-                    <div className="text-sm text-gray-600">
-                        {Object.keys(locationsByDeviceId).length} device(s) tracked
+                    <div className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+                        <span className="text-sm font-medium text-blue-700">
+                            {Object.keys(locationsByDeviceId).length} rastreando
+                        </span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                     {/* Device Selector */}
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Select Device
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Seleccionar Dispositivo
                         </label>
                         <select
                             value={selectedDeviceId || ''}
                             onChange={(e) => setSelectedDeviceId(e.target.value || null)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all hover:border-gray-400"
                         >
-                            <option value="">All Devices</option>
+                            <option value="">Todos los Dispositivos</option>
                             {onlineDevices.map((device) => (
                                 <option key={device.id} value={device.id}>
                                     {device.name} {device.status === 'EXECUTING' ? '🏃' : ''}
@@ -136,7 +140,7 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
 
                     {/* Follow Camera Toggle */}
                     <div className="flex items-center gap-2 mt-6">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                             <input
                                 type="checkbox"
                                 checked={followSelected}
@@ -144,26 +148,26 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
                                 disabled={!selectedDeviceId}
                                 className="rounded"
                             />
-                            <span className="text-sm text-gray-700">📹 Follow Camera</span>
+                            <span className="text-sm text-gray-700 font-medium">📹 Seguir Cámara</span>
                         </label>
                     </div>
                 </div>
 
                 {/* Legend */}
-                <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-4 text-xs text-gray-600">
-                    <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span>Active</span>
+                <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-6 text-xs">
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
+                        <span className="text-gray-600 font-medium">Activo</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <span>Stale (&gt;10s)</span>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-red-500 rounded-full shadow-sm"></div>
+                        <span className="text-gray-600 font-medium">Inactivo (&gt;10s)</span>
                     </div>
                 </div>
             </div>
 
             {/* Map */}
-            <div className="h-96 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+            <div className="h-96 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-2xl">
                 <LeafletMapContainer
                     center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : defaultCenter}
                     zoom={13}
@@ -190,31 +194,31 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
                             >
                                 <Popup>
                                     <div className="p-2 min-w-[200px]">
-                                        <h4 className="font-bold text-lg mb-2">
+                                        <h4 className="font-bold text-lg mb-2 text-gray-900">
                                             {device?.name || deviceId}
                                         </h4>
                                         <div className="text-sm space-y-1">
                                             <div>
-                                                <strong>Status:</strong>{' '}
-                                                <span className={stale ? 'text-red-600' : 'text-green-600'}>
-                                                    {stale ? '⚠️ Stale' : '✅ Active'}
+                                                <strong>Estado:</strong>{' '}
+                                                <span className={stale ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                                                    {stale ? '⚠️ Inactivo' : '✅ Activo'}
                                                 </span>
                                             </div>
                                             <div>
-                                                <strong>Location:</strong><br />
+                                                <strong>Ubicación:</strong><br />
                                                 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
                                             </div>
                                             <div>
-                                                <strong>Speed:</strong> {(location.speed * 3.6).toFixed(1)} km/h
+                                                <strong>Velocidad:</strong> {(location.speed * 3.6).toFixed(1)} km/h
                                             </div>
                                             <div>
-                                                <strong>Bearing:</strong> {location.bearing.toFixed(0)}°
+                                                <strong>Dirección:</strong> {location.bearing.toFixed(0)}°
                                             </div>
                                             <div>
-                                                <strong>Accuracy:</strong> ±{location.accuracy.toFixed(1)}m
+                                                <strong>Precisión:</strong> ±{location.accuracy.toFixed(1)}m
                                             </div>
                                             <div className="text-xs text-gray-500 pt-1 border-t mt-1">
-                                                Updated: {Math.round((Date.now() - location.updatedAt) / 1000)}s ago
+                                                Actualizado: {Math.round((Date.now() - location.updatedAt) / 1000)}s atrás
                                             </div>
                                         </div>
                                     </div>

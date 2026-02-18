@@ -14,7 +14,7 @@ export const useDeviceControl = () => {
         setError(null);
         try {
             const options: StreamOptions = {
-                speed: speed ? speed * 3.6 : 30, // Convert m/s to km/h if provided
+                speed: speed || 30, // Default to 30 km/h
                 loop: false,
             };
             await streamService.start(deviceId, routeId, options);

@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useDevicesLocationStore } from '@/store/useDevicesLocationStore';
+import { useDevicesStore } from '@/store/useDevicesStore';
 import { WsMockLocationMessage } from '@/types/geocode';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000';
 
 interface UseDevicesWebSocketOptions {
     autoConnect?: boolean;
@@ -38,7 +39,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
         const connectWebSocket = () => {
             console.log('Connecting to devices WebSocket...');
 
-            const socket = io(`${WS_URL}/ws`, {
+            const socket = io(`${WS_URL}/devices`, {
                 auth: {
                     token,
                 },
@@ -73,22 +74,10 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
 
             // Listen for MOCK_LOCATION messages
             socket.on('MOCK_LOCATION', (message: WsMockLocationMessage['data']) => {
-                console.log('📍 Received MOCK_LOCATION:', message);
-
-                // Extract deviceId - adjust this based on your backend implementation
+                // ... same logic
                 let deviceId = message.deviceId;
+                if (!deviceId) return;
 
-                // If deviceId is not in the message, you may need to resolve it
-                // from the socket connection metadata. For example:
-                // deviceId = socket.handshake?.auth?.deviceId;
-                // Or from a room/channel that the socket joined.
-
-                if (!deviceId) {
-                    console.warn('MOCK_LOCATION message missing deviceId, cannot update location');
-                    return;
-                }
-
-                // Update location store
                 updateLocation(deviceId, {
                     lat: message.latitude,
                     lng: message.longitude,
@@ -96,6 +85,33 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     speed: message.speed,
                     accuracy: message.accuracy,
                 });
+            });
+
+            // Listen for device status events
+            socket.on('DEVICE_ONLINE', (data: { deviceId: string }) => {
+                console.log('✅ Device Online:', data);
+                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'ONLINE');
+            });
+
+            socket.on('DEVICE_OFFLINE', (data: { deviceId: string }) => {
+                console.log('❌ Device Offline:', data);
+                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'OFFLINE');
+            });
+
+            socket.on('DEVICE_STATUS_UPDATE', (data: { deviceId: string; status: 'ONLINE' | 'OFFLINE' | 'EXECUTING' }) => {
+                console.log('🔄 Device Status Update:', data);
+                useDevicesStore.getState().updateDeviceStatus(data.deviceId, data.status);
+            });
+
+            // Listen for specific connection events (aliases)
+            socket.on('DEVICE_CONNECTED', (data: { deviceId: string }) => {
+                console.log('✅ Device Connected:', data);
+                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'ONLINE');
+            });
+
+            socket.on('DEVICE_DISCONNECTED', (data: { deviceId: string }) => {
+                console.log('❌ Device Disconnected:', data);
+                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'OFFLINE');
             });
 
             // Generic message listener (for debugging)

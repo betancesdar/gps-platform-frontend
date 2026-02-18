@@ -30,9 +30,13 @@ export const RouteAssignment: React.FC = () => {
         setSuccess(null);
 
         try {
+            const route = routes.find(r => r.id === selectedRouteId);
+            const speed = route?.speed || 40; // Default to 40km/h if not set
+
             const updatedDevice = await devicesService.assignRoute({
                 deviceId: selectedDeviceId,
                 routeId: selectedRouteId,
+                speed,
             });
 
             updateDevice(selectedDeviceId, {
@@ -89,7 +93,7 @@ export const RouteAssignment: React.FC = () => {
                         <option value="">-- Select a route --</option>
                         {routes.map((route) => (
                             <option key={route.id} value={route.id}>
-                                {route.name} ({route.points.length} points, {route.speed} km/h)
+                                {route.name} ({route.points?.length || 0} points, {route.speed} km/h)
                             </option>
                         ))}
                     </select>
