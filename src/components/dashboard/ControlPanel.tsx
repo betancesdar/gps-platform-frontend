@@ -1,13 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusBadge } from '../ui/StatusBadge';
+import { Button } from '../ui/Button';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { useRoutesStore } from '@/store/useRoutesStore';
+import { EnrollDeviceModal } from '@/components/devices/EnrollDeviceModal';
+import { devicesService } from '@/services/devices.service';
 
 export const ControlPanel: React.FC = () => {
     const devices = useDevicesStore((state) => state.devices);
     const routes = useRoutesStore((state) => state.routes);
+
+    // Enroll Modal State
+    const [isEnrollOpen, setIsEnrollOpen] = useState(false);
+    const [isCleaning, setIsCleaning] = useState(false);
 
     const safeDevices = Array.isArray(devices) ? devices : [];
     const safeRoutes = Array.isArray(routes) ? routes : [];
@@ -15,6 +22,21 @@ export const ControlPanel: React.FC = () => {
     const onlineCount = safeDevices.filter(d => d.status === 'ONLINE').length;
     const executingCount = safeDevices.filter(d => d.status === 'EXECUTING').length;
     const offlineCount = safeDevices.filter(d => d.status === 'OFFLINE').length;
+
+    const handleCleanup = async () => {
+        if (!confirm('Remove devices inactive for more than 30 days?')) return;
+        setIsCleaning(true);
+        try {
+            const res = await devicesService.cleanupStaleDevices();
+            alert(`Cleaned up ${res.count} stale devices.`);
+            // Optionally refresh devices list
+            devicesService.getDevices().then(useDevicesStore.getState().setDevices);
+        } catch (e) {
+            alert('Cleanup failed');
+        } finally {
+            setIsCleaning(false);
+        }
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -29,6 +51,16 @@ export const ControlPanel: React.FC = () => {
                             ✓ Conectado
                         </span>
                     </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                    <Button onClick={() => setIsEnrollOpen(true)} size="sm" variant="primary">
+                        + Enroll Device
+                    </Button>
+                    <Button onClick={handleCleanup} isLoading={isCleaning} size="sm" variant="danger">
+                        🧹 Cleanup
+                    </Button>
                 </div>
 
                 {/* Stats */}
@@ -61,6 +93,8 @@ export const ControlPanel: React.FC = () => {
                     El frontend controla streams usando la API REST. Los dispositivos Android reciben ubicaciones via WebSocket.
                 </p>
             </div>
+
+            <EnrollDeviceModal isOpen={isEnrollOpen} onClose={() => setIsEnrollOpen(false)} />
         </div>
     );
 };

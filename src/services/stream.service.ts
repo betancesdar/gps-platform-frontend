@@ -27,14 +27,19 @@ export const streamService = {
      * Start a stream
      * POST /api/stream/start
      */
-    async start(deviceId: string, routeId: string, options?: StreamOptions): Promise<StreamStatus> {
-        const response = await axiosInstance.post<ApiResponse<StreamStatus>>('/stream/start', {
+    async start(deviceId: string, routeId?: string, options?: StreamOptions): Promise<StreamStatus> {
+        const payload: any = {
             deviceId,
-            routeId,
             speed: options?.speed || 30,
             loop: options?.loop || false,
             accuracy: options?.accuracy || 10,
-        });
+        };
+
+        if (routeId) {
+            payload.routeId = routeId;
+        }
+
+        const response = await axiosInstance.post<ApiResponse<StreamStatus>>('/stream/start', payload);
         return response.data.data;
     },
 

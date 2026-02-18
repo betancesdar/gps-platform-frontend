@@ -9,8 +9,9 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Create device marker icon with rotation and stale indication
-function createDeviceIcon(bearing: number, isStale: boolean) {
+function createDeviceIcon(bearing: number, isStale: boolean, state?: 'MOVE' | 'WAIT') {
     const opacity = isStale ? 0.4 : 1;
+    const isWaiting = state === 'WAIT';
 
     return L.divIcon({
         className: 'custom-device-marker',
@@ -27,7 +28,7 @@ function createDeviceIcon(bearing: number, isStale: boolean) {
                 transition: all 0.3s ease;
             ">
                 <div style="font-size: 28px;">
-                    🚗
+                    ${isWaiting ? '🛑' : '🚗'}
                 </div>
             </div>
             ${isStale ? `
@@ -190,7 +191,7 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
                             <Marker
                                 key={deviceId}
                                 position={[location.lat, location.lng]}
-                                icon={createDeviceIcon(location.bearing, stale)}
+                                icon={createDeviceIcon(location.bearing, stale, location.state)}
                             >
                                 <Popup>
                                     <div className="p-2 min-w-[200px]">
@@ -201,7 +202,7 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
                                             <div>
                                                 <strong>Estado:</strong>{' '}
                                                 <span className={stale ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
-                                                    {stale ? '⚠️ Inactivo' : '✅ Activo'}
+                                                    {stale ? '⚠️ Inactivo' : (location.state === 'WAIT' ? '🛑 Esperando' : '✅ En Movimiento')}
                                                 </span>
                                             </div>
                                             <div>

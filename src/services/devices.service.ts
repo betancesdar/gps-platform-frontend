@@ -128,4 +128,50 @@ export const devicesService = {
         });
         return transformDevice(response.data.data);
     },
+
+    /**
+     * Enroll a new device (Admin)
+     * POST /api/devices/enroll
+     */
+    async enrollDevice(label: string): Promise<{ enrollmentCode: string; expiresAt: string; deviceId: string; qrPayload: string }> {
+        const response = await axiosInstance.post<ApiResponse<{ enrollmentCode: string; expiresAt: string; deviceId: string }>>('/devices/enroll', {
+            label
+        });
+
+        const { enrollmentCode, expiresAt, deviceId } = response.data.data;
+
+        // Generate QR Payload (Deep Link)
+        // Format: gpsmock://enroll?code=123456&host=https://api.example.com&exp=1700000000
+        const host = window.location.protocol + '//' + window.location.host; // Or API_URL found not in window
+        // Better to use the configured API URL for the host param if the app connects there
+        // But for deep link, we might want the base domain. 
+        // Let's use the API_URL from axios instance or env, but we are in service.
+        // We'll construct a generic payload.
+
+        // Using a simpler JSON payload for broad compatibility if we change schema later, 
+        // but user requested deep link format:
+        // gpsmock://enroll?code=...&deviceId=...
+
+        const params = new URLSearchParams({
+            code: enrollmentCode,
+            deviceId: deviceId,
+            exp: Math.floor(new Date(expiresAt).getTime() / 1000).toString(),
+            host: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+        });
+
+        const qrPayload = `gpsmock://enroll?${params.toString()}`;
+
+        return { ...response.data.data, qrPayload };
+    },
+
+    /**
+     * Cleanup stale devices
+     * POST /api/devices/cleanup-stale
+     */
+    async cleanupStaleDevices(olderThanSeconds: number = 2592000): Promise<{ count: number }> {
+        const response = await axiosInstance.post<ApiResponse<{ count: number }>>('/devices/cleanup-stale', {
+            olderThanSeconds
+        });
+        return response.data.data;
+    },
 };

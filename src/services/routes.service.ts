@@ -1,5 +1,6 @@
 import axiosInstance from '@/lib/axios';
 import { Route, CreateRouteRequest, UpdateRouteRequest } from '@/types';
+import { CreateRouteFromWaypointsRequest, CreateRouteResponse } from '@/types/routeWaypoints';
 
 interface ApiResponse<T> {
     success: boolean;
@@ -149,6 +150,19 @@ export const routesService = {
     async updateConfig(routeId: string, config: RouteConfig): Promise<Route> {
         const response = await axiosInstance.put<ApiResponse<BackendRoute>>(`/routes/${routeId}/config`, config);
         return transformRoute(response.data.data);
+    },
+
+    /**
+     * Create route from waypoints (Origin + Stops + Destination)
+     * POST /api/routes/from-waypoints
+     */
+    async createRouteFromWaypoints(data: CreateRouteFromWaypointsRequest): Promise<CreateRouteResponse> {
+        const response = await axiosInstance.post<ApiResponse<CreateRouteResponse>>('/routes/from-waypoints', data);
+        if (response.data && response.data.data) {
+            return response.data.data;
+        }
+        // Fallback or strict typing handling
+        return response.data as unknown as CreateRouteResponse;
     },
 
     /**

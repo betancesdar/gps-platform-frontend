@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Tabs } from '../ui/Tabs';
 import { AddressRouteBuilder } from './AddressRouteBuilder';
+import { WaypointsRouteBuilder } from './WaypointsRouteBuilder';
 import { CreateRouteRequest, RoutePointDto } from '@/types';
 
 interface RouteFormProps {
@@ -414,8 +415,22 @@ export const RouteForm: React.FC<RouteFormProps> = ({
             tabs={[
                 {
                     id: 'manual',
-                    label: '📍 Manual Waypoints',
+                    label: '📍 Simple Waypoints',
                     content: manualFormContent,
+                },
+                {
+                    id: 'advanced',
+                    label: '✨ Advanced Builder',
+                    content: (
+                        <WaypointsRouteBuilder
+                            onRouteCreated={(routeId) => {
+                                if (onAddressRouteCreated) {
+                                    onAddressRouteCreated(routeId);
+                                }
+                            }}
+                            onCancel={onCancel}
+                        />
+                    ),
                 },
                 {
                     id: 'address',

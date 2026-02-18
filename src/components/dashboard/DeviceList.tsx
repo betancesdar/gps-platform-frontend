@@ -34,6 +34,11 @@ export const DeviceList: React.FC = () => {
                 statusFilter === 'all' || device.status === statusFilter;
 
             return matchesSearch && matchesStatus;
+        }).sort((a, b) => {
+            // Sort: ONLINE/EXECUTING first, then OFFLINE
+            const scoreA = (a.status === 'ONLINE' || a.status === 'EXECUTING') ? 1 : 0;
+            const scoreB = (b.status === 'ONLINE' || b.status === 'EXECUTING') ? 1 : 0;
+            return scoreB - scoreA;
         });
     }, [safeDevices, searchQuery, statusFilter]);
 

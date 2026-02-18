@@ -22,8 +22,9 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
     const socketRef = useRef<Socket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectAttempts = useRef(0);
-    const MAX_RECONNECT_ATTEMPTS = 5;
+    const MAX_RECONNECT_ATTEMPTS = 10;
     const BASE_RECONNECT_DELAY = 1000;
+    const MAX_RECONNECT_DELAY = 15000;
 
     const updateLocation = useDevicesLocationStore((state) => state.updateLocation);
 
@@ -58,7 +59,11 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
 
                 // Attempt to reconnect with exponential backoff
                 if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
-                    const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts.current);
+                    const delay = Math.min(
+                        BASE_RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts.current),
+                        MAX_RECONNECT_DELAY
+                    );
+
                     console.log(`Reconnecting in ${delay}ms... (attempt ${reconnectAttempts.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
 
                     reconnectTimeoutRef.current = setTimeout(() => {
@@ -84,6 +89,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     bearing: message.bearing,
                     speed: message.speed,
                     accuracy: message.accuracy,
+                    state: message.state,
                 });
             });
 
@@ -116,7 +122,10 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
 
             // Generic message listener (for debugging)
             socket.onAny((eventName, ...args) => {
-                console.log(`[WS Event] ${eventName}:`, args);
+                // Filter out sensitive data if needed, or just log event name
+                if (process.env.NODE_ENV === 'development') {
+                    console.log(`[WS Event] ${eventName}`, args);
+                }
             });
         };
 

@@ -44,6 +44,7 @@ export interface WsMockLocationMessage {
         bearing: number;
         accuracy: number;
         deviceId?: string;
+        state?: 'MOVE' | 'WAIT';
     };
 }
 
@@ -54,5 +55,6 @@ export interface DeviceLocationState {
     bearing: number;
     speed: number;
     accuracy: number;
+    state?: 'MOVE' | 'WAIT';
     updatedAt: number; // timestamp
 }
