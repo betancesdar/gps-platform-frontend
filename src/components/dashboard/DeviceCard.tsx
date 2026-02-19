@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/StatusBadge';
 import { useDeviceControl } from '@/hooks/useDeviceControl';
 import { useRoutesStore } from '@/store/useRoutesStore';
+import { useDevicesStore } from '@/store/useDevicesStore';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/es';
@@ -54,6 +55,17 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         }
     };
 
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this device? This cannot be undone.')) {
+            try {
+                await useDevicesStore.getState().deleteDevice(device.id);
+            } catch (error) {
+                alert('Failed to delete device');
+            }
+        }
+    };
+
     const isExecuting = device.status === 'EXECUTING';
     const isOnline = device.status === 'ONLINE';
     const isOffline = device.status === 'OFFLINE';
@@ -80,7 +92,20 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                             </p>
                         </div>
                     </div>
-                    <StatusBadge status={device.status} />
+                    <div className="flex items-center gap-2">
+                        <StatusBadge status={device.status} />
+                        {/* Delete Button (Icon) */}
+                        <button
+                            onClick={handleDelete}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete Device"
+                            disabled={isLoading}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Device Info */}

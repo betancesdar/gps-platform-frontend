@@ -69,9 +69,11 @@ export const devicesService = {
     /**
      * Get all devices
      * GET /api/devices
+     * @param activeWithinSeconds Optional filter to get only recently active devices
      */
-    async getDevices(): Promise<Device[]> {
-        const response = await axiosInstance.get<ApiResponse<BackendDevice[]>>('/devices');
+    async getDevices(activeWithinSeconds?: number): Promise<Device[]> {
+        const params = activeWithinSeconds ? { activeWithinSeconds } : {};
+        const response = await axiosInstance.get<ApiResponse<BackendDevice[]>>('/devices', { params });
 
         // Handle various response formats
         let devices: BackendDevice[] = [];

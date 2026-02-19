@@ -34,8 +34,8 @@ export const ControlPanel: React.FC = () => {
             const res = await devicesService.cleanupStaleDevices(0);
             alert(`✅ Database wiped. Removed ${res.count} devices.`);
 
-            // Refresh devices list
-            devicesService.getDevices().then(useDevicesStore.getState().setDevices);
+            // Refresh devices list using store action to respect filters
+            await useDevicesStore.getState().loadDevices();
         } catch (e) {
             console.error(e);
             alert('Cleanup failed. Check console for details.');
@@ -60,7 +60,17 @@ export const ControlPanel: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors select-none">
+                        <input
+                            type="checkbox"
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            checked={useDevicesStore((state) => state.showOfflineHistory)}
+                            onChange={() => useDevicesStore.getState().toggleShowOfflineHistory()}
+                        />
+                        <span className="text-xs font-medium text-gray-700">Historial (Offline)</span>
+                    </label>
+
                     <Button onClick={() => setIsEnrollOpen(true)} size="sm" variant="primary">
                         + Enroll Device
                     </Button>

@@ -1,11 +1,14 @@
 import { create } from 'zustand';
-import { Device } from '@/services/devices.service';
+import { Device, devicesService } from '@/services/devices.service';
 
 interface DevicesState {
     devices: Device[];
     selectedDeviceId: string | null;
     isLoading: boolean;
     error: string | null;
+
+    // State for filtering
+    showOfflineHistory: boolean;
 
     // Actions
     setDevices: (devices: Device[]) => void;
@@ -17,13 +20,19 @@ interface DevicesState {
     setLoading: (isLoading: boolean) => void;
     setError: (error: string | null) => void;
     clearDevices: () => void;
+
+    // New Actions
+    toggleShowOfflineHistory: () => void;
+    loadDevices: () => Promise<void>;
+    deleteDevice: (deviceId: string) => Promise<void>;
 }
 
-export const useDevicesStore = create<DevicesState>((set) => ({
+export const useDevicesStore = create<DevicesState>((set, get) => ({
     devices: [],
     selectedDeviceId: null,
     isLoading: false,
     error: null,
+    showOfflineHistory: false, // Default: Hide offline history (filter active only)
 
     setDevices: (devices) => set({ devices }),
 
@@ -42,6 +51,7 @@ export const useDevicesStore = create<DevicesState>((set) => ({
     removeDevice: (deviceId) =>
         set((state) => ({
             devices: state.devices.filter((device) => device.id !== deviceId),
+            selectedDeviceId: state.selectedDeviceId === deviceId ? null : state.selectedDeviceId,
         })),
 
     updateDeviceStatus: (deviceId, status) =>
@@ -60,6 +70,43 @@ export const useDevicesStore = create<DevicesState>((set) => ({
     setError: (error) => set({ error }),
 
     clearDevices: () => set({ devices: [], selectedDeviceId: null }),
+
+    // New Actions Implementation
+    toggleShowOfflineHistory: () => {
+        const current = get().showOfflineHistory;
+        set({ showOfflineHistory: !current });
+        // Reload devices with new filter settings
+        get().loadDevices();
+    },
+
+    loadDevices: async () => {
+        const { showOfflineHistory, setLoading, setDevices, setError } = get();
+        setLoading(true);
+        try {
+            // If showOfflineHistory is false, fetch only active within 600s (10 min)
+            // If true, fetch all (undefined/null)
+            const activeWithin = showOfflineHistory ? undefined : 600;
+            const devices = await devicesService.getDevices(activeWithin);
+            setDevices(devices);
+            setError(null);
+        } catch (err: any) {
+            console.error('Failed to load devices:', err);
+            setError(err.message || 'Failed to load devices');
+        } finally {
+            setLoading(false);
+        }
+    },
+
+    deleteDevice: async (deviceId: string) => {
+        try {
+            await devicesService.deleteDevice(deviceId);
+            // Optimistic update
+            get().removeDevice(deviceId);
+        } catch (err) {
+            console.error('Failed to delete device:', err);
+            throw err;
+        }
+    },
 }));
 
 // Re-export Device type for convenience
