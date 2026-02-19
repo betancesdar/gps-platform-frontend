@@ -24,15 +24,21 @@ export const ControlPanel: React.FC = () => {
     const offlineCount = safeDevices.filter(d => d.status === 'OFFLINE').length;
 
     const handleCleanup = async () => {
-        if (!confirm('Remove devices inactive for more than 30 days?')) return;
+        const confirmMsg = '⚠️ DANGER ZONE ⚠️\n\nThis will delete ALL devices from the database.\nAre you sure you want to start from scratch?';
+        if (!confirm(confirmMsg)) return;
+
         setIsCleaning(true);
         try {
-            const res = await devicesService.cleanupStaleDevices();
-            alert(`Cleaned up ${res.count} stale devices.`);
-            // Optionally refresh devices list
+            // Passing 0 seconds means "delete everything that hasn't been seen in 0 seconds"
+            // Effectively wiping the database of devices
+            const res = await devicesService.cleanupStaleDevices(0);
+            alert(`✅ Database wiped. Removed ${res.count} devices.`);
+
+            // Refresh devices list
             devicesService.getDevices().then(useDevicesStore.getState().setDevices);
         } catch (e) {
-            alert('Cleanup failed');
+            console.error(e);
+            alert('Cleanup failed. Check console for details.');
         } finally {
             setIsCleaning(false);
         }

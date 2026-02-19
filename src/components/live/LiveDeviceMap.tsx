@@ -169,7 +169,9 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
 
             {/* Map */}
             <div className="h-96 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-2xl">
+                {/* Key forces remount if selected device changes significantly, or just use a static key if needed */}
                 <LeafletMapContainer
+                    key={`map-${selectedDeviceId || 'all'}`}
                     center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : defaultCenter}
                     zoom={13}
                     style={{ height: '100%', width: '100%' }}

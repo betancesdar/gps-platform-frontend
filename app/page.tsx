@@ -8,17 +8,18 @@ import { useDevicesStore } from '@/store/useDevicesStore';
 import { useRoutesStore } from '@/store/useRoutesStore';
 import { devicesService } from '@/services/devices.service';
 import { routesService } from '@/services/routes.service';
+import { useDevicesWebSocket } from '@/hooks/useDevicesWebSocket';
 
 // Dynamic imports to avoid SSR issues
-const MapView = dynamic(
-  () => import('@/components/map/MapView').then((mod) => ({ default: mod.MapView })),
+const LiveDeviceMap = dynamic(
+  () => import('@/components/live/LiveDeviceMap').then((mod) => ({ default: mod.LiveDeviceMap })),
   {
     ssr: false,
     loading: () => (
       <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Cargando mapa...</p>
+          <p className="text-gray-600 font-medium">Cargando mapa en tiempo real...</p>
         </div>
       </div>
     )
@@ -55,6 +56,9 @@ export default function DashboardPage() {
 
   const [showMap, setShowMap] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
+
+  // Connect to WebSocket for live updates on dashboard
+  useDevicesWebSocket({ autoConnect: isAuthenticated });
 
   useEffect(() => {
     setMounted(true);
@@ -223,7 +227,7 @@ export default function DashboardPage() {
 
               {showMap && (
                 <div className="h-[600px]">
-                  <MapView className="h-full w-full" />
+                  <LiveDeviceMap className="h-full w-full" />
                 </div>
               )}
             </div>

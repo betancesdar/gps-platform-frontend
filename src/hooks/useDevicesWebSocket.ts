@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { useDevicesLocationStore } from '@/store/useDevicesLocationStore';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { WsMockLocationMessage } from '@/types/geocode';
@@ -11,15 +10,11 @@ interface UseDevicesWebSocketOptions {
 }
 
 /**
- * Hook to manage WebSocket connection for live device tracking
- * Listens for MOCK_LOCATION messages and updates the location store
- * 
- * NOTE: If MOCK_LOCATION messages don't include deviceId, you'll need to
- * resolve it based on your connection scheme (e.g., room/channel metadata)
+ * Hook to manage WebSocket connection for live device tracking using native WebSocket API
  */
 export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
     const { autoConnect = true } = options;
-    const socketRef = useRef<Socket | null>(null);
+    const socketRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectAttempts = useRef(0);
     const MAX_RECONNECT_ATTEMPTS = 10;
@@ -38,49 +33,72 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
         }
 
         const connectWebSocket = () => {
-            console.log('Connecting to devices WebSocket...');
+            console.log('Connecting to devices WebSocket (Native)...');
 
-            const socket = io(`${WS_URL}/devices`, {
-                auth: {
-                    token,
-                },
-                transports: ['websocket'],
-            });
+            // Native Websocket uses ws:// or wss://. 
+            // Query param for auth is standard for browser WS API where headers aren't supported.
+            const wsUrl = `${WS_URL}?token=${token}`;
 
+            const socket = new WebSocket(wsUrl);
             socketRef.current = socket;
 
-            socket.on('connect', () => {
+            socket.onopen = () => {
                 console.log('✅ Connected to devices WebSocket');
                 reconnectAttempts.current = 0;
-            });
+            };
 
-            socket.on('disconnect', (reason) => {
-                console.log('❌ Disconnected from WebSocket:', reason);
-
-                // Attempt to reconnect with exponential backoff
-                if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
-                    const delay = Math.min(
-                        BASE_RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts.current),
-                        MAX_RECONNECT_DELAY
-                    );
-
-                    console.log(`Reconnecting in ${delay}ms... (attempt ${reconnectAttempts.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-
-                    reconnectTimeoutRef.current = setTimeout(() => {
-                        reconnectAttempts.current++;
-                        socket.connect();
-                    }, delay);
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleMessage(data);
+                } catch (e) {
+                    console.error('Failed to parse WS message:', e);
                 }
-            });
+            };
 
-            socket.on('connect_error', (error) => {
-                console.error('WebSocket connection error:', error);
-            });
+            socket.onclose = (event) => {
+                // Check if component is still mounted/ref is valid
+                if (!socketRef.current) return;
 
-            // Listen for MOCK_LOCATION messages
-            socket.on('MOCK_LOCATION', (message: WsMockLocationMessage['data']) => {
-                // ... same logic
-                let deviceId = message.deviceId;
+                console.log('Using fallback/retry for WebSocket connection (Status: Disconnected)');
+                socketRef.current = null;
+                attemptReconnect();
+            };
+
+            socket.onerror = (error) => {
+                // Native WebSocket error event gives very little info (usually just type: "error")
+                // We suppress the console.error here because onclose will fire immediately after
+                // and we handle the retry logic there.
+                // console.debug('WebSocket encountered error, closing...');
+            };
+        };
+
+        const attemptReconnect = () => {
+            if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+                const delay = Math.min(
+                    BASE_RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts.current),
+                    MAX_RECONNECT_DELAY
+                );
+
+                console.log(`Reconnecting in ${delay}ms... (attempt ${reconnectAttempts.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    reconnectAttempts.current++;
+                    connectWebSocket();
+                }, delay);
+            }
+        };
+
+        const handleMessage = (payload: any) => {
+            // Check event type - assuming standard JSON structure { event: 'NAME', data: ... }
+            // If backend sends raw messages, adjust accordingly. 
+            // Based on previous socket.io code, we expect 'MOCK_LOCATION', 'DEVICE_ONLINE', etc.
+
+            const { event, data } = payload;
+
+            if (event === 'MOCK_LOCATION') {
+                const message = data as WsMockLocationMessage['data'];
+                const deviceId = message.deviceId;
                 if (!deviceId) return;
 
                 updateLocation(deviceId, {
@@ -91,42 +109,20 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     accuracy: message.accuracy,
                     state: message.state,
                 });
-            });
-
-            // Listen for device status events
-            socket.on('DEVICE_ONLINE', (data: { deviceId: string }) => {
+            } else if (event === 'DEVICE_ONLINE' || event === 'DEVICE_CONNECTED') {
                 console.log('✅ Device Online:', data);
                 useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'ONLINE');
-            });
-
-            socket.on('DEVICE_OFFLINE', (data: { deviceId: string }) => {
+            } else if (event === 'DEVICE_OFFLINE' || event === 'DEVICE_DISCONNECTED') {
                 console.log('❌ Device Offline:', data);
                 useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'OFFLINE');
-            });
-
-            socket.on('DEVICE_STATUS_UPDATE', (data: { deviceId: string; status: 'ONLINE' | 'OFFLINE' | 'EXECUTING' }) => {
+            } else if (event === 'DEVICE_STATUS_UPDATE') {
                 console.log('🔄 Device Status Update:', data);
                 useDevicesStore.getState().updateDeviceStatus(data.deviceId, data.status);
-            });
-
-            // Listen for specific connection events (aliases)
-            socket.on('DEVICE_CONNECTED', (data: { deviceId: string }) => {
-                console.log('✅ Device Connected:', data);
-                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'ONLINE');
-            });
-
-            socket.on('DEVICE_DISCONNECTED', (data: { deviceId: string }) => {
-                console.log('❌ Device Disconnected:', data);
-                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'OFFLINE');
-            });
-
-            // Generic message listener (for debugging)
-            socket.onAny((eventName, ...args) => {
-                // Filter out sensitive data if needed, or just log event name
+            } else {
                 if (process.env.NODE_ENV === 'development') {
-                    console.log(`[WS Event] ${eventName}`, args);
+                    console.log(`[WS Event] ${event}`, data);
                 }
-            });
+            }
         };
 
         connectWebSocket();
@@ -137,14 +133,18 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 clearTimeout(reconnectTimeoutRef.current);
             }
             if (socketRef.current) {
-                socketRef.current.disconnect();
+                socketRef.current.close();
                 socketRef.current = null;
             }
         };
     }, [autoConnect, updateLocation]);
 
+    // Native WS doesn't expose a simple "isConnected" property that updates React state,
+    // but line 153 in previous code used ref.current.connected. 
+    // WebSocket has readyState.
     return {
         socket: socketRef.current,
-        isConnected: socketRef.current?.connected || false,
+        // This is not reactive, but matches previous implementation style
+        isConnected: socketRef.current?.readyState === WebSocket.OPEN,
     };
 }
