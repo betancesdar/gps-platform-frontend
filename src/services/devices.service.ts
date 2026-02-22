@@ -9,6 +9,7 @@ interface ApiResponse<T> {
 // Backend device format
 export interface BackendDevice {
     deviceId: string;
+    label?: string;          // Name given during enrollment
     platform: string;
     appVersion: string;
     registeredAt: string;
@@ -46,7 +47,8 @@ function transformDevice(backendDevice: BackendDevice): Device {
 
     return {
         id: backendDevice.deviceId,
-        name: backendDevice.deviceId, // Use deviceId as name
+        // Use enrollment label if available, fall back to deviceId
+        name: backendDevice.label || backendDevice.deviceId,
         status: status,
         lastSeen: lastSeen,
         createdAt: new Date(backendDevice.registeredAt),

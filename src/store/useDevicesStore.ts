@@ -111,29 +111,13 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
     },
 
     deleteDevice: async (deviceId: string) => {
-        // Optimistic update first
-        get().removeDevice(deviceId);
-
-        // Update Local Storage
-        if (typeof window !== 'undefined') {
-            try {
-                const stored = localStorage.getItem('deleted_device_ids');
-                const deletedIds: string[] = stored ? JSON.parse(stored) : [];
-                if (!deletedIds.includes(deviceId)) {
-                    deletedIds.push(deviceId);
-                    localStorage.setItem('deleted_device_ids', JSON.stringify(deletedIds));
-                }
-            } catch (e) {
-                console.error('Failed to update local storage', e);
-            }
-        }
-
-        // Try backend delete (fire and forget / catch error)
         try {
             await devicesService.deleteDevice(deviceId);
-        } catch (err) {
-            console.warn('Backend delete failed, but device removed locally:', err);
-            // We suppress the error so the UI shows it as deleted "successfully"
+            // Only remove from local state after backend confirms delete
+            get().removeDevice(deviceId);
+        } catch (err: any) {
+            console.error('Failed to delete device:', err);
+            throw new Error(err?.message || 'Failed to delete device');
         }
     },
 }));
