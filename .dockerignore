@@ -1,0 +1,24 @@
+# Dependencies installed inside the container
+node_modules
+
+# Next.js build output (rebuilt inside container)
+.next
+out
+build
+
+# Environment files — inject these at runtime, not in the image
+.env*
+
+# Dev/editor artifacts
+.git
+.gitignore
+.DS_Store
+*.pem
+*.log
+*.tsbuildinfo
+next-env.d.ts
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+docker-compose*.yml

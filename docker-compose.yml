@@ -1,0 +1,29 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* vars are baked into the JS bundle at build time.
+        # Set them here (or export them in your shell before running docker compose).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_MAP_CENTER_LAT: ${NEXT_PUBLIC_MAP_CENTER_LAT:-40.4168}
+        NEXT_PUBLIC_MAP_CENTER_LNG: ${NEXT_PUBLIC_MAP_CENTER_LNG:--3.7038}
+        NEXT_PUBLIC_MAP_ZOOM: ${NEXT_PUBLIC_MAP_ZOOM:-13}
+    image: gps-platform-frontend:latest
+    container_name: gps-frontend
+    restart: unless-stopped
+    ports:
+      - "8547:8547"
+    environment:
+      NODE_ENV: production
+      PORT: 8547
+      HOSTNAME: "0.0.0.0"
+    # Healthcheck so that orchestrators (Docker Swarm, Portainer, etc.)
+    # know when the app is truly ready.
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8547/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
