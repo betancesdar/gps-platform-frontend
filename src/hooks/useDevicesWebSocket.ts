@@ -2,8 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useDevicesLocationStore } from '@/store/useDevicesLocationStore';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { WsMockLocationMessage } from '@/types/geocode';
-
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000';
+import { buildWsUrl } from '@/lib/socket';
 
 interface UseDevicesWebSocketOptions {
     autoConnect?: boolean;
@@ -33,11 +32,13 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
         }
 
         const connectWebSocket = () => {
-            console.log('Connecting to devices WebSocket (Native)...');
+            // buildWsUrl reads NEXT_PUBLIC_API_URL, converts http→ws/https→wss,
+            // uses the real host:port, and appends /ws path.
+            const wsUrl = buildWsUrl(token);
 
-            // Native Websocket uses ws:// or wss://. 
-            // Query param for auth is standard for browser WS API where headers aren't supported.
-            const wsUrl = `${WS_URL}?token=${token}`;
+            if (process.env.NODE_ENV !== 'production') {
+                console.log('[DASH_WS] Connecting to wsUrl=', wsUrl.replace(token, token.slice(0, 8) + '…'));
+            }
 
             const socket = new WebSocket(wsUrl);
             socketRef.current = socket;
@@ -57,19 +58,21 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
             };
 
             socket.onclose = (event) => {
-                // Check if component is still mounted/ref is valid
                 if (!socketRef.current) return;
-
-                console.log('Using fallback/retry for WebSocket connection (Status: Disconnected)');
+                const maskedUrl = wsUrl.replace(token, token.slice(0, 8) + '…');
+                if (process.env.NODE_ENV !== 'production') {
+                    console.warn(`[DASH_WS] Closed (code=${event.code}) url=${maskedUrl}`);
+                }
                 socketRef.current = null;
                 attemptReconnect();
             };
 
-            socket.onerror = (error) => {
-                // Native WebSocket error event gives very little info (usually just type: "error")
-                // We suppress the console.error here because onclose will fire immediately after
-                // and we handle the retry logic there.
-                // console.debug('WebSocket encountered error, closing...');
+            socket.onerror = () => {
+                // onerror gives no useful details; onclose fires next with code+reason.
+                if (process.env.NODE_ENV !== 'production') {
+                    const maskedUrl = wsUrl.replace(token, token.slice(0, 8) + '…');
+                    console.warn('[DASH_WS] Error on', maskedUrl);
+                }
             };
         };
 

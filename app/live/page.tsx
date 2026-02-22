@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { useDevicesWebSocket } from '@/hooks/useDevicesWebSocket';
-import { LiveDeviceMap } from '@/components/live/LiveDeviceMap';
+import dynamic from 'next/dynamic';
+
+const LiveDeviceMap = dynamic(
+    () => import('@/components/live/LiveDeviceMap').then((mod) => mod.LiveDeviceMap),
+    { ssr: false }
+);
 import { devicesService } from '@/services/devices.service';
 
 export default function LiveTrackingPage() {

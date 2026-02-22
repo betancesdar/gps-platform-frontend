@@ -1,13 +1,56 @@
 /**
  * Native WebSocket client for GPS Mock Location Backend
  * Backend uses ws library, not socket.io
- * Connection URL: ws://localhost:4000/ws?token=JWT&deviceId=DEVICE_ID
+ * Connection URL: ws://<host>:4000/ws?token=JWT&deviceId=DEVICE_ID
  */
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000/ws';
+/**
+ * Build the WebSocket URL from the API base URL.
+ *
+ * Rules:
+ *  - http://HOST:PORT/...  →  ws://HOST:PORT/ws
+ *  - https://HOST/...      →  wss://HOST/ws
+ *  - Appends ?token=TOKEN and optionally &deviceId=ID
+ *
+ * Source of truth: NEXT_PUBLIC_API_URL (same var used by axiosInstance).
+ * Fallback: window.location.hostname + :4000 when in browser.
+ */
+export function buildWsUrl(token: string, deviceId?: string): string {
+    // Derive the HTTP base the same way axios does
+    const apiBase: string =
+        process.env.NEXT_PUBLIC_API_URL ||
+        (typeof window !== 'undefined'
+            ? `http://${window.location.hostname}:4000`
+            : 'http://localhost:4000');
+
+    let wsBase: string;
+    try {
+        const url = new URL(apiBase);
+        // Convert scheme: http → ws, https → wss
+        const wsScheme = url.protocol === 'https:' ? 'wss' : 'ws';
+        // Retain host + explicit port; replace path with /ws
+        wsBase = `${wsScheme}://${url.hostname}${url.port ? ':' + url.port : ''}/ws`;
+    } catch {
+        // Fallback if URL parse fails (shouldn't happen in practice)
+        wsBase = apiBase
+            .replace(/^https/, 'wss')
+            .replace(/^http/, 'ws')
+            .replace(/\/[^/]*$/, '') + '/ws';
+    }
+
+    const wsUrl = `${wsBase}?token=${encodeURIComponent(token)}${deviceId ? `&deviceId=${encodeURIComponent(deviceId)}` : ''
+        }`;
+
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('[DASH_WS] apiBaseUrl=', apiBase);
+        console.log('[DASH_WS] wsUrl=', wsUrl.replace(token, token.slice(0, 8) + '…'));
+    }
+
+    return wsUrl;
+}
 
 // WebSocket message types from backend
-export type WSMessageType = 'CONNECTED' | 'MOCK_LOCATION' | 'ERROR' | 'STREAM_STARTED' | 'STREAM_PAUSED' | 'STREAM_RESUMED' | 'STREAM_STOPPED' | 'STREAM_COMPLETED';
+export type WSMessageType = 'CONNECTED' | 'MOCK_LOCATION' | 'ERROR' | 'STREAM_STARTED' | 'STREAM_PAUSED' | 'STREAM_RESUMED' | 'STREAM_STOPPED' | 'STREAM_COMPLETED' | 'EXECUTION_PROGRESS_UPDATE';
 
 export interface WSMessage {
     type: WSMessageType;
@@ -67,11 +110,8 @@ export const connectSocket = (token: string, deviceId?: string): WebSocket => {
     currentToken = token;
     currentDeviceId = deviceId || null;
 
-    // Build WebSocket URL with query params
-    let wsUrl = `${WS_URL}?token=${encodeURIComponent(token)}`;
-    if (deviceId) {
-        wsUrl += `&deviceId=${encodeURIComponent(deviceId)}`;
-    }
+    // Build WebSocket URL with correct host, port, and /ws path
+    const wsUrl = buildWsUrl(token, deviceId);
 
     console.log('🔌 Connecting to WebSocket:', wsUrl.replace(token, 'TOKEN_HIDDEN'));
     notifyStatus('connecting');

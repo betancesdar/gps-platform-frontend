@@ -1,32 +1,35 @@
-import { useEffect } from 'react';
-import { getSocket } from '@/lib/socket';
+import { useEffect, useState } from 'react';
+import { onMessage, isConnected, WSMessage } from '@/lib/socket';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { ExecutionProgressUpdateEvent } from '@/types';
 
 export const useRealTimePosition = () => {
     const { updateDevice } = useDevicesStore();
+    const [connected, setConnected] = useState(isConnected());
 
     useEffect(() => {
-        const socket = getSocket();
-        if (!socket) return;
+        // Update connection status periodically or listen to status changes (if available)
+        // For now, simple check on mount
+        setConnected(isConnected());
 
-        const handleProgressUpdate = (data: ExecutionProgressUpdateEvent) => {
-            // Actualizar el dispositivo con el progreso
-            updateDevice(data.deviceId, {
-                // Los datos del progreso se pueden guardar en el dispositivo
-                ...data,
-            });
+        const handleMessage = (message: WSMessage) => {
+            if (message.type === 'EXECUTION_PROGRESS_UPDATE' && message.payload) {
+                const data = message.payload as ExecutionProgressUpdateEvent;
+                updateDevice(data.deviceId, {
+                    status: 'EXECUTING',
+                    lastSeen: new Date(data.timestamp),
+                });
+            }
         };
 
-        socket.on('EXECUTION_PROGRESS_UPDATE', handleProgressUpdate);
+        const unsubscribe = onMessage(handleMessage);
 
         return () => {
-            socket?.off('EXECUTION_PROGRESS_UPDATE', handleProgressUpdate);
+            unsubscribe();
         };
     }, [updateDevice]);
 
-    const socket = getSocket();
     return {
-        isConnected: socket?.connected || false,
+        isConnected: connected,
     };
 };

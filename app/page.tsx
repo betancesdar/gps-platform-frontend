@@ -9,6 +9,8 @@ import { useRoutesStore } from '@/store/useRoutesStore';
 import { devicesService } from '@/services/devices.service';
 import { routesService } from '@/services/routes.service';
 import { useDevicesWebSocket } from '@/hooks/useDevicesWebSocket';
+import { Map as MapIcon, LogOut, Route as RouteIcon, LayoutDashboard } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Dynamic imports to avoid SSR issues
 const LiveDeviceMap = dynamic(
@@ -16,10 +18,10 @@ const LiveDeviceMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+      <div className="h-full flex items-center justify-center bg-gray-50/50 backdrop-blur-sm rounded-2xl">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Cargando mapa en tiempo real...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mx-auto mb-3"></div>
+          <p className="text-gray-500 font-medium text-sm">Loading Live Map...</p>
         </div>
       </div>
     )
@@ -105,13 +107,14 @@ export default function DashboardPage() {
 
   if (!mounted || authLoading || isInitializing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-lg rounded-3xl mb-6 shadow-2xl">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center relative">
+          <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="relative glass p-8 rounded-3xl shadow-xl border border-white/60">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-800 text-lg font-bold">GPS Platform</p>
+            <p className="text-gray-500 text-sm mt-1">Initializing Secure Environment...</p>
           </div>
-          <p className="text-white text-xl font-semibold">Cargando GPS Platform...</p>
-          <p className="text-white/80 text-sm mt-2">Preparando tu dashboard</p>
         </div>
       </div>
     );
@@ -123,118 +126,119 @@ export default function DashboardPage() {
 
   return (
     <SocketProvider>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Modern Header with Gradient */}
-        <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50 backdrop-blur-lg bg-white/95">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    GPS Platform
-                  </h1>
-                  <p className="text-sm text-gray-600">
-                    Control en tiempo real
-                  </p>
-                </div>
-              </div>
+      <div className="min-h-screen bg-[#f3f4f6] relative overflow-x-hidden">
+        {/* Abstract Background Shapes */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-400/10 rounded-full blur-[120px] translate-x-1/3 translate-y-1/3"></div>
+        </div>
 
-              <div className="flex items-center gap-3">
-                {user && (
-                  <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-semibold text-sm">
-                        {user.name?.charAt(0).toUpperCase() || 'U'}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">{user.name || user.id}</span>
+        {/* Modern Header (Floating Glass) */}
+        <header className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="max-w-7xl mx-auto glass rounded-2xl shadow-lg shadow-gray-200/50 p-3 sm:px-6 flex items-center justify-between border border-white/60">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                <LayoutDashboard className="w-5 h-5 text-white" />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+                  GPS Platform
+                </h1>
+                <p className="text-xs text-blue-600 font-medium tracking-wide uppercase">
+                  Enterprise Command Center
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {user && (
+                <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-gray-50/80 rounded-xl border border-gray-100">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-gray-200 to-gray-300 flex items-center justify-center text-gray-600 font-bold text-xs">
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                )}
+                  <div className="text-xs">
+                    <p className="font-semibold text-gray-700">{user.name}</p>
+                    <p className="text-gray-400">Admin</p>
+                  </div>
+                </div>
+              )}
 
-                <button
-                  onClick={() => router.push('/routes')}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                  </svg>
-                  Rutas
-                </button>
+              <div className="h-8 w-[1px] bg-gray-200 hidden md:block"></div>
 
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-200"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Salir
-                </button>
-              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/routes')}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 border border-gray-200 transition-colors shadow-sm"
+              >
+                <RouteIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">Routes</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 border border-red-100 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </motion.button>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="space-y-6">
+        <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8"
+          >
             {/* Control Panel */}
             <ControlPanel />
 
-            {/* Map Section with Toggle */}
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900">Mapa en Tiempo Real</h2>
-                    <p className="text-sm text-gray-600">Visualización de dispositivos y rutas</p>
-                  </div>
+            {/* Map & List Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              {/* Map Section - Takes up 2/3 on large screens */}
+              <motion.div
+                layout
+                transition={{ type: "spring", bounce: 0.2 }}
+                className={`xl:col-span-3 rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/10 border border-white/50 relative bg-white transition-all duration-500 ease-in-out ${showMap ? 'h-[700px]' : 'h-20'}`}
+              >
+                {/* Map Toggle Button Absolute */}
+                <div className="absolute top-4 right-4 z-[500]">
+                  <button
+                    onClick={() => setShowMap(!showMap)}
+                    className="glass-card px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-white transition-colors flex items-center gap-2"
+                  >
+                    <MapIcon className="w-4 h-4" />
+                    {showMap ? 'Minimize Map' : 'Maximize Map'}
+                  </button>
                 </div>
 
-                <button
-                  onClick={() => setShowMap(!showMap)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm border border-gray-200"
-                >
-                  {showMap ? (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
-                      Ocultar Mapa
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      Mostrar Mapa
-                    </>
-                  )}
-                </button>
+                {showMap ? (
+                  <LiveDeviceMap className="w-full h-full" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-50 gap-3">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-gray-500 font-medium text-sm">Map is running in background...</span>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Device List - Takes full width below */}
+              <div className="xl:col-span-3">
+                <div className="flex items-center gap-3 mb-6 px-2">
+                  <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
+                  <h2 className="text-xl font-bold text-gray-900">Active Fleet</h2>
+                </div>
+
+                <DeviceList />
               </div>
-
-              {showMap && (
-                <div className="h-[600px]">
-                  <LiveDeviceMap className="h-full w-full" />
-                </div>
-              )}
             </div>
-
-            {/* Device List */}
-            <DeviceList />
-          </div>
+          </motion.div>
         </main>
       </div>
     </SocketProvider>

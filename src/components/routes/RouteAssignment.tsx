@@ -33,11 +33,7 @@ export const RouteAssignment: React.FC = () => {
             const route = routes.find(r => r.id === selectedRouteId);
             const speed = route?.speed || 40; // Default to 40km/h if not set
 
-            const updatedDevice = await devicesService.assignRoute({
-                deviceId: selectedDeviceId,
-                routeId: selectedRouteId,
-                speed,
-            });
+            const updatedDevice = await devicesService.assignRoute(selectedDeviceId, selectedRouteId);
 
             updateDevice(selectedDeviceId, {
                 assignedRoute: updatedDevice.assignedRoute,

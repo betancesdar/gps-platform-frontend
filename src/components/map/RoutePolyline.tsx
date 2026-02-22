@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Polyline, CircleMarker, Popup, Marker, DivIcon } from 'react-leaflet';
+import { Polyline, CircleMarker, Popup, Marker } from 'react-leaflet';
 import { Route } from '@/types';
 import L from 'leaflet';
 
@@ -93,7 +93,7 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                 // Show labeled waypoints if they exist
                 waypoints.map(({ point, originalIndex }, waypointIndex) => {
                     const isStart = originalIndex === 0;
-                    const isEnd = originalIndex === route.points.length - 1;
+                    const isEnd = originalIndex === (route.points?.length || 0) - 1;
 
                     let markerColor = '#3b82f6'; // blue for intermediate stops
                     if (isStart) markerColor = '#10b981'; // green for start

@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { DeviceCard } from './DeviceCard';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Filter, Smartphone, WifiOff, Activity } from 'lucide-react';
 
 export const DeviceList: React.FC = () => {
     const devices = useDevicesStore((state) => state.devices);
@@ -42,107 +44,103 @@ export const DeviceList: React.FC = () => {
         });
     }, [safeDevices, searchQuery, statusFilter]);
 
-    // Statistics
-    const stats = useMemo(() => {
-        return {
-            total: safeDevices.length,
-            online: safeDevices.filter((d) => d?.status === 'ONLINE').length,
-            offline: safeDevices.filter((d) => d?.status === 'OFFLINE').length,
-            executing: safeDevices.filter((d) => d?.status === 'EXECUTING').length,
-        };
-    }, [safeDevices]);
-
     return (
-        <div className="space-y-4">
-            {/* Statistics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                    <div className="text-sm text-gray-600">Total Dispositivos</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-green-600">{stats.online}</div>
-                    <div className="text-sm text-gray-600">En Línea</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-gray-500">{stats.offline}</div>
-                    <div className="text-sm text-gray-600">Desconectados</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-blue-600">{stats.executing}</div>
-                    <div className="text-sm text-gray-600">Ejecutando</div>
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                    {/* Search */}
-                    <div className="flex-1">
-                        <input
-                            type="text"
-                            placeholder="Buscar dispositivos..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+        <div className="space-y-6">
+            {/* Filters Bar */}
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between"
+            >
+                {/* Search */}
+                <div className="relative w-full md:max-w-md group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     </div>
-
-                    {/* Status Filter */}
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setStatusFilter('all')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'all'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                        >
-                            Todos
-                        </button>
-                        <button
-                            onClick={() => setStatusFilter('ONLINE')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'ONLINE'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                        >
-                            En Línea
-                        </button>
-                        <button
-                            onClick={() => setStatusFilter('OFFLINE')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${statusFilter === 'OFFLINE'
-                                ? 'bg-gray-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                        >
-                            Desconectados
-                        </button>
-                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search devices by name or ID..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="block w-full pl-10 pr-3 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl leading-5 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all sm:text-sm"
+                    />
                 </div>
-            </div>
 
-            {/* Device Grid */}
-            {filteredDevices.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredDevices.map((device, index) => (
-                        <DeviceCard
-                            key={device.id || `device-${index}`}
-                            device={device}
-                            onSelect={setSelectedDevice}
-                            isSelected={selectedDeviceId === device.id}
-                        />
+                {/* Filter Pills */}
+                <div className="flex bg-gray-100/50 p-1.5 rounded-xl border border-gray-200/50 w-full md:w-auto overflow-x-auto">
+                    {[
+                        { id: 'all', label: 'All', icon: Filter },
+                        { id: 'ONLINE', label: 'Online', icon: Activity },
+                        { id: 'OFFLINE', label: 'Offline', icon: WifiOff },
+                    ].map((filter) => (
+                        <button
+                            key={filter.id}
+                            onClick={() => setStatusFilter(filter.id as any)}
+                            className={`
+                                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap
+                                ${statusFilter === filter.id
+                                    ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                }
+                            `}
+                        >
+                            <filter.icon className={`w-4 h-4 ${statusFilter === filter.id ? 'text-blue-500' : ''}`} />
+                            {filter.label}
+                            <span className={`ml-1.5 py-0.5 px-2 rounded-md text-[10px] ${statusFilter === filter.id ? 'bg-blue-50 text-blue-600' : 'bg-gray-200 text-gray-500'
+                                }`}>
+                                {filter.id === 'all'
+                                    ? safeDevices.length
+                                    : safeDevices.filter(d => d.status === filter.id).length
+                                }
+                            </span>
+                        </button>
                     ))}
                 </div>
-            ) : (
-                <div className="bg-white rounded-lg shadow p-8 text-center">
-                    <div className="text-gray-400 text-lg">No hay dispositivos</div>
-                    <div className="text-gray-500 text-sm mt-2">
-                        {searchQuery
-                            ? 'Intenta ajustar tu búsqueda'
-                            : 'Los dispositivos aparecerán aquí cuando se conecten'}
-                    </div>
-                </div>
-            )}
+            </motion.div>
+
+            {/* Device Grid */}
+            <motion.div
+                layout
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+                <AnimatePresence mode='popLayout'>
+                    {filteredDevices.length > 0 ? (
+                        filteredDevices.map((device) => (
+                            <DeviceCard
+                                key={device.id}
+                                device={device}
+                                onSelect={setSelectedDevice}
+                                isSelected={selectedDeviceId === device.id}
+                            />
+                        ))
+                    ) : (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="col-span-full py-12 flex flex-col items-center justify-center text-center glass rounded-3xl border-dashed border-2 border-gray-200"
+                        >
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <Smartphone className="w-8 h-8 text-gray-300" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900">No matching devices found</h3>
+                            <p className="text-gray-500 mt-1 max-w-sm mx-auto">
+                                {searchQuery
+                                    ? `We couldn't find any device matching "${searchQuery}"`
+                                    : "Waiting for devices to connect..."}
+                            </p>
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="mt-4 text-blue-600 font-medium hover:text-blue-700 hover:underline"
+                                >
+                                    Clear search
+                                </button>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
         </div>
     );
 };

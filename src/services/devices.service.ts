@@ -39,17 +39,66 @@ export interface Device {
 
 // Transform backend device to frontend format
 function transformDevice(backendDevice: BackendDevice): Device {
+    // Sanity check: If device is "Connected" but hasn't been seen in > 2 minutes, it's a ghost connection.
+    const lastSeen = backendDevice.lastSeenAt ? new Date(backendDevice.lastSeenAt) : null;
+    const isStale = lastSeen && (new Date().getTime() - lastSeen.getTime() > 2 * 60 * 1000); // 2 minutes tolerance
+    const status = (backendDevice.isConnected && !isStale) ? 'ONLINE' : 'OFFLINE';
+
     return {
         id: backendDevice.deviceId,
         name: backendDevice.deviceId, // Use deviceId as name
-        status: backendDevice.isConnected ? 'ONLINE' : 'OFFLINE',
-        lastSeen: backendDevice.lastSeenAt ? new Date(backendDevice.lastSeenAt) : null,
+        status: status,
+        lastSeen: lastSeen,
         createdAt: new Date(backendDevice.registeredAt),
         updatedAt: new Date(backendDevice.registeredAt),
         platform: backendDevice.platform,
         appVersion: backendDevice.appVersion,
         assignedRoute: backendDevice.assignedRoute,
     };
+}
+
+/**
+ * Normalizes a serverBaseUrl to always include the correct port.
+ *
+ * Rules:
+ *  - Trim whitespace
+ *  - If no scheme ("http://" or "https://"), prefix "http://"
+ *  - Remove trailing slash
+ *  - If scheme is "http:" AND there is no explicit port → append ":4000"
+ *
+ * Returns { normalizedUrl, portFixed } where portFixed indicates that
+ * ":4000" was silently injected (so the UI can warn the user).
+ */
+export function normalizeServerBaseUrl(raw: string): { normalizedUrl: string; portFixed: boolean } {
+    let s = raw.trim();
+
+    // Step 1 – ensure scheme
+    if (!s.startsWith('http://') && !s.startsWith('https://')) {
+        s = `http://${s}`;
+    }
+
+    // Step 2 – remove trailing slash
+    s = s.replace(/\/+$/, '');
+
+    // Step 3 – check/inject port using the URL API
+    let portFixed = false;
+    try {
+        const url = new URL(s);
+        if (url.protocol === 'http:' && !url.port) {
+            url.port = '4000';
+            portFixed = true;
+        }
+        // Rebuild without trailing slash
+        const normalized = url.origin; // e.g. "http://192.168.1.50:4000"
+        return { normalizedUrl: normalized, portFixed };
+    } catch {
+        // Fallback: string manipulation
+        const portFixed2 = s.startsWith('http://') && !s.match(/http:\/\/[^/]*(:\d+)/);
+        if (portFixed2) {
+            s = s.replace(/^(http:\/\/[^/]+)/, '$1:4000');
+        }
+        return { normalizedUrl: s, portFixed: portFixed2 };
+    }
 }
 
 export const devicesService = {
@@ -84,7 +133,21 @@ export const devicesService = {
             devices = response.data as unknown as BackendDevice[];
         }
 
-        return devices.map(transformDevice);
+        const mappedDevices = devices.map(transformDevice);
+
+        // Client-side fallback filtering
+        // If the backend ignores the param, we filter here to ensure UI is clean
+        if (activeWithinSeconds) {
+            const threshold = new Date(Date.now() - activeWithinSeconds * 1000);
+            return mappedDevices.filter(d => {
+                // Keep if status is ONLINE or EXECUTING
+                if (d.status === 'ONLINE' || d.status === 'EXECUTING') return true;
+                // Or if seen recently
+                return d.lastSeen && d.lastSeen > threshold;
+            });
+        }
+
+        return mappedDevices;
     },
 
     /**
@@ -134,36 +197,71 @@ export const devicesService = {
     /**
      * Enroll a new device (Admin)
      * POST /api/devices/enroll
+     *
+     * QR payload is a JSON object with:
+     *   { enrollmentCode, expiresAt, deviceId, serverBaseUrl }
+     * serverBaseUrl is always normalized to include :4000 for bare HTTP.
      */
-    async enrollDevice(label: string): Promise<{ enrollmentCode: string; expiresAt: string; deviceId: string; qrPayload: string }> {
-        const response = await axiosInstance.post<ApiResponse<{ enrollmentCode: string; expiresAt: string; deviceId: string }>>('/devices/enroll', {
-            label
-        });
+    async enrollDevice(label: string, hostOverride?: string): Promise<{
+        enrollmentCode: string;
+        expiresAt: string;
+        deviceId: string;
+        qrPayload: string;
+        normalizedServerBaseUrl: string;
+        portFixed: boolean;
+    }> {
+        const response = await axiosInstance.post<ApiResponse<{
+            enrollmentCode: string;
+            expiresAt: string;
+            deviceId: string;
+            serverBaseUrl?: string;
+        }>>('/devices/enroll', { label });
 
-        const { enrollmentCode, expiresAt, deviceId } = response.data.data;
+        const rawData = response.data.data;
+        const { enrollmentCode, expiresAt, deviceId } = rawData;
 
-        // Generate QR Payload (Deep Link)
-        // Format: gpsmock://enroll?code=123456&host=https://api.example.com&exp=1700000000
-        const host = window.location.protocol + '//' + window.location.host; // Or API_URL found not in window
-        // Better to use the configured API URL for the host param if the app connects there
-        // But for deep link, we might want the base domain. 
-        // Let's use the API_URL from axios instance or env, but we are in service.
-        // We'll construct a generic payload.
+        // ── 1. Determine raw serverBaseUrl ─────────────────────────────────────
+        // Priority: (a) what backend returned, (b) hostOverride from UI input,
+        // (c) browser origin (with port replaced to 4000), (d) fallback.
+        let rawServerBaseUrl: string =
+            rawData.serverBaseUrl ||
+            hostOverride ||
+            (typeof window !== 'undefined'
+                ? window.location.protocol + '//' + window.location.hostname
+                : process.env.NEXT_PUBLIC_API_URL || 'http://localhost') ||
+            'http://localhost';
 
-        // Using a simpler JSON payload for broad compatibility if we change schema later, 
-        // but user requested deep link format:
-        // gpsmock://enroll?code=...&deviceId=...
+        // ── 2. Normalize ────────────────────────────────────────────────────────
+        const { normalizedUrl, portFixed } = normalizeServerBaseUrl(rawServerBaseUrl);
 
-        const params = new URLSearchParams({
-            code: enrollmentCode,
-            deviceId: deviceId,
-            exp: Math.floor(new Date(expiresAt).getTime() / 1000).toString(),
-            host: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-        });
+        // ── 3. Dev-only logging ─────────────────────────────────────────────────
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[ENROLL_QR] raw serverBaseUrl=', rawServerBaseUrl);
+            console.log('[ENROLL_QR] normalized serverBaseUrl=', normalizedUrl);
+        }
 
-        const qrPayload = `gpsmock://enroll?${params.toString()}`;
+        // ── 4. Build JSON QR payload ────────────────────────────────────────────
+        const payloadObject = {
+            enrollmentCode,
+            expiresAt,
+            deviceId,
+            serverBaseUrl: normalizedUrl,
+        };
 
-        return { ...response.data.data, qrPayload };
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[ENROLL_QR] QR payload=', payloadObject);
+        }
+
+        const qrPayload = JSON.stringify(payloadObject);
+
+        return {
+            enrollmentCode,
+            expiresAt,
+            deviceId,
+            qrPayload,
+            normalizedServerBaseUrl: normalizedUrl,
+            portFixed,
+        };
     },
 
     /**
