@@ -1,10 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 
 // Create axios instance
+// baseURL includes /api so service calls use relative paths like /auth/login
 export const axiosInstance = axios.create({
-    baseURL: API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL,
+    baseURL: `${API_BASE}/api`,
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
