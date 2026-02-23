@@ -35,7 +35,6 @@ export const EnrollDeviceModal: React.FC<EnrollDeviceModalProps> = ({ isOpen, on
         deviceId: string;
         qrPayload: string;
         normalizedServerBaseUrl: string;
-        portFixed: boolean;
     } | null>(null);
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [showCopied, setShowCopied] = useState(false);
@@ -260,12 +259,6 @@ export const EnrollDeviceModal: React.FC<EnrollDeviceModalProps> = ({ isOpen, on
                                                             <Server className="w-3 h-3 text-gray-400 shrink-0" />
                                                             <span className="truncate">{enrollmentData.normalizedServerBaseUrl}</span>
                                                         </div>
-                                                        {enrollmentData.portFixed && (
-                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                                                                <ShieldAlert className="w-3 h-3 shrink-0" />
-                                                                Fixed missing :4000
-                                                            </div>
-                                                        )}
                                                     </div>
 
                                                     {/* Copy Payload button */}
@@ -352,7 +345,8 @@ export const EnrollDeviceModal: React.FC<EnrollDeviceModalProps> = ({ isOpen, on
                         </motion.div>
                     </motion.div>
                 </>
-            )}
-        </AnimatePresence>
+            )
+            }
+        </AnimatePresence >
     );
 };
