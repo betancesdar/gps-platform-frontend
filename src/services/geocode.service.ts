@@ -17,30 +17,16 @@ export const geocodeService = {
         }
 
         try {
-            // Get token for authorization
-            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-            // Call Next.js API route directly (not through axiosInstance which points to backend)
-            const response = await fetch(
-                `/api/geocode/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                    },
-                }
+            // axiosInstance baseURL is already ${NEXT_PUBLIC_API_URL}/api
+            // so this resolves to: https://api.trustygps.app/api/geocode/autocomplete
+            // Authorization header is added automatically by the axios request interceptor
+            const response = await axiosInstance.get<GeocodeAutocompleteResponse>(
+                '/geocode/autocomplete',
+                { params: { q: query, limit } }
             );
 
-            if (!response.ok) {
-                console.error('Autocomplete error:', response.status, response.statusText);
-                return [];
-            }
-
-            const data: GeocodeAutocompleteResponse = await response.json();
-
-            if (data?.success && data?.data?.suggestions) {
-                return data.data.suggestions;
+            if (response.data?.success && response.data?.data?.suggestions) {
+                return response.data.data.suggestions;
             }
 
             return [];
