@@ -181,11 +181,11 @@ export const devicesService = {
      * Enroll a new device (Admin)
      * POST /api/devices/enroll
      *
-     * QR payload is a JSON object with:
-     *   { enrollmentCode, expiresAt, deviceId, serverBaseUrl }
-     * serverBaseUrl is always normalized to include :4000 for bare HTTP.
+     * QR payload: { enrollmentCode, expiresAt, deviceId, serverBaseUrl }
+     * serverBaseUrl is ALWAYS derived from NEXT_PUBLIC_API_URL.
+     * window.location is strictly forbidden as a source.
      */
-    async enrollDevice(label: string, hostOverride?: string): Promise<{
+    async enrollDevice(label: string): Promise<{
         enrollmentCode: string;
         expiresAt: string;
         deviceId: string;
@@ -202,25 +202,23 @@ export const devicesService = {
         const rawData = response.data.data;
         const { enrollmentCode, expiresAt, deviceId } = rawData;
 
-        // ── 1. Determine raw serverBaseUrl ─────────────────────────────────────
-        // Priority: (a) hostOverride from UI input (manual dev override),
-        // (b) NEXT_PUBLIC_API_URL (Primary source of truth for Prod/Staging).
+        // ── 1. Determine serverBaseUrl ──────────────────────────────────────────
+        // ONLY source: NEXT_PUBLIC_API_URL. window.location is FORBIDDEN.
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-        if (!apiUrl && !hostOverride) {
-            throw new Error("NEXT_PUBLIC_API_URL is required for QR generation.");
+        if (!apiUrl) {
+            throw new Error(
+                "[EnrollDevice] NEXT_PUBLIC_API_URL is not set. Cannot generate QR code. " +
+                "Set this env var to the public API origin (e.g. https://api.trustygps.app)."
+            );
         }
 
-        const rawServerBaseUrl = hostOverride || apiUrl!;
-
-        // ── 2. Normalize ────────────────────────────────────────────────────────
-        // We only want the origin (e.g. https://api.trustygps.app)
-        const normalizedUrl = normalizeServerBaseUrl(rawServerBaseUrl);
+        // ── 2. Normalize to pure origin (removes /api, trailing slashes, etc.) ──
+        const normalizedUrl = normalizeServerBaseUrl(apiUrl);
 
         // ── 3. Dev-only logging ─────────────────────────────────────────────────
         if (process.env.NODE_ENV !== 'production') {
-            console.log('[ENROLL_QR] apiUrl=', apiUrl);
-            console.log('[ENROLL_QR] raw serverBaseUrl=', rawServerBaseUrl);
+            console.log('[ENROLL_QR] NEXT_PUBLIC_API_URL=', apiUrl);
             console.log('[ENROLL_QR] normalized serverBaseUrl=', normalizedUrl);
         }
 

@@ -7,14 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     X,
     Smartphone,
-    Wifi,
     QrCode,
     Copy,
     Check,
-    AlertTriangle,
     Loader2,
     ArrowRight,
-    ShieldAlert,
     Server
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -27,7 +24,6 @@ interface EnrollDeviceModalProps {
 export const EnrollDeviceModal: React.FC<EnrollDeviceModalProps> = ({ isOpen, onClose }) => {
     const [step, setStep] = useState<'label' | 'code'>('label');
     const [label, setLabel] = useState('');
-    const [hostIp, setHostIp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [enrollmentData, setEnrollmentData] = useState<{
         enrollmentCode: string;
@@ -44,7 +40,6 @@ export const EnrollDeviceModal: React.FC<EnrollDeviceModalProps> = ({ isOpen, on
         if (isOpen) {
             setStep('label');
             setLabel('');
-            setHostIp(window.location.hostname);
             setEnrollmentData(null);
             setShowCopied(false);
         }
@@ -78,7 +73,8 @@ export const EnrollDeviceModal: React.FC<EnrollDeviceModalProps> = ({ isOpen, on
 
         setIsLoading(true);
         try {
-            const data = await devicesService.enrollDevice(label, hostIp);
+            // NEVER pass hostOverride — serverBaseUrl always comes from NEXT_PUBLIC_API_URL
+            const data = await devicesService.enrollDevice(label);
             setEnrollmentData(data);
             setStep('code');
         } catch (error: any) {
@@ -172,47 +168,16 @@ export const EnrollDeviceModal: React.FC<EnrollDeviceModalProps> = ({ isOpen, on
                                                     </div>
                                                 </div>
 
-                                                <div className="group">
-                                                    <div className="flex items-center justify-between mb-1.5 ml-1">
-                                                        <label className="block text-sm font-semibold text-gray-700">
-                                                            Server Host / IP <span className="text-red-500">*</span>
-                                                        </label>
-                                                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 uppercase tracking-wide">
-                                                            Required
-                                                        </span>
-                                                    </div>
-                                                    <div className="relative">
-                                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
-                                                            <Wifi className="w-5 h-5" />
-                                                        </div>
-                                                        <input
-                                                            type="text"
-                                                            value={hostIp}
-                                                            onChange={(e) => setHostIp(e.target.value)}
-                                                            placeholder="192.168.1.x"
-                                                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 font-mono text-sm"
-                                                        />
-                                                    </div>
 
-                                                    <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
-                                                        <div className="mt-0.5 p-1 bg-amber-100 rounded-full shrink-0">
-                                                            <AlertTriangle className="w-3 h-3 text-amber-600" />
-                                                        </div>
-                                                        <div className="text-xs text-amber-800 leading-relaxed">
-                                                            <strong className="block mb-0.5 font-bold text-amber-900">Network Configuration</strong>
-                                                            Use your computer's local IP (e.g., <code>192.168.1.50</code>) so the Android app can reach the server. Avoid using <code>localhost</code>.
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             </div>
 
                                             <div className="pt-4 border-t border-gray-100">
                                                 <button
                                                     type="submit"
-                                                    disabled={!label.trim() || !hostIp.trim() || isLoading}
+                                                    disabled={!label.trim() || isLoading}
                                                     className={clsx(
                                                         "w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wide",
-                                                        !label.trim() || !hostIp.trim() || isLoading
+                                                        !label.trim() || isLoading
                                                             ? "bg-gray-300 cursor-not-allowed shadow-none"
                                                             : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-blue-500/30 hover:scale-[1.01] active:scale-[0.99]"
                                                     )}
