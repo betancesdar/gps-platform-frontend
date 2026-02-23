@@ -69,37 +69,18 @@ function transformDevice(backendDevice: BackendDevice): Device {
  *  - If scheme is "http:" AND there is no explicit port → append ":4000"
  *
  * Returns { normalizedUrl, portFixed } where portFixed indicates that
- * ":4000" was silently injected (so the UI can warn the user).
+/**
+ * Normalizes a serverBaseUrl to its clean origin.
+ * Removes any trailing slashes and paths (like /api).
  */
-export function normalizeServerBaseUrl(raw: string): { normalizedUrl: string; portFixed: boolean } {
-    let s = raw.trim();
-
-    // Step 1 – ensure scheme
-    if (!s.startsWith('http://') && !s.startsWith('https://')) {
-        s = `http://${s}`;
-    }
-
-    // Step 2 – remove trailing slash
-    s = s.replace(/\/+$/, '');
-
-    // Step 3 – check/inject port using the URL API
-    let portFixed = false;
+export function normalizeServerBaseUrl(input: string): string {
+    const raw = input.trim().replace(/\/+$/, '');
     try {
-        const url = new URL(s);
-        if (url.protocol === 'http:' && !url.port) {
-            url.port = '4000';
-            portFixed = true;
-        }
-        // Rebuild without trailing slash
-        const normalized = url.origin; // e.g. "http://192.168.1.50:4000"
-        return { normalizedUrl: normalized, portFixed };
+        const u = new URL(raw);
+        return u.origin; // e.g., https://api.trustygps.app
     } catch {
-        // Fallback: string manipulation
-        const portFixed2 = s.startsWith('http://') && !s.match(/http:\/\/[^/]*(:\d+)/);
-        if (portFixed2) {
-            s = s.replace(/^(http:\/\/[^/]+)/, '$1:4000');
-        }
-        return { normalizedUrl: s, portFixed: portFixed2 };
+        // Fallback for simple strings that don't satisfy URL API (rare in practice)
+        return raw.split('/')[0] + '//' + raw.split('/')[2];
     }
 }
 
@@ -210,34 +191,35 @@ export const devicesService = {
         deviceId: string;
         qrPayload: string;
         normalizedServerBaseUrl: string;
-        portFixed: boolean;
     }> {
         const response = await axiosInstance.post<ApiResponse<{
             enrollmentCode: string;
             expiresAt: string;
             deviceId: string;
-            serverBaseUrl?: string;
+            serverBaseUrl?: string; // Backend fallback
         }>>('/devices/enroll', { label });
 
         const rawData = response.data.data;
         const { enrollmentCode, expiresAt, deviceId } = rawData;
 
         // ── 1. Determine raw serverBaseUrl ─────────────────────────────────────
-        // Priority: (a) what backend returned, (b) hostOverride from UI input,
-        // (c) browser origin (with port replaced to 4000), (d) fallback.
-        let rawServerBaseUrl: string =
-            rawData.serverBaseUrl ||
-            hostOverride ||
-            (typeof window !== 'undefined'
-                ? window.location.protocol + '//' + window.location.hostname
-                : process.env.NEXT_PUBLIC_API_URL || 'http://localhost') ||
-            'http://localhost';
+        // Priority: (a) hostOverride from UI input (manual dev override),
+        // (b) NEXT_PUBLIC_API_URL (Primary source of truth for Prod/Staging).
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+        if (!apiUrl && !hostOverride) {
+            throw new Error("NEXT_PUBLIC_API_URL is required for QR generation.");
+        }
+
+        const rawServerBaseUrl = hostOverride || apiUrl!;
 
         // ── 2. Normalize ────────────────────────────────────────────────────────
-        const { normalizedUrl, portFixed } = normalizeServerBaseUrl(rawServerBaseUrl);
+        // We only want the origin (e.g. https://api.trustygps.app)
+        const normalizedUrl = normalizeServerBaseUrl(rawServerBaseUrl);
 
         // ── 3. Dev-only logging ─────────────────────────────────────────────────
         if (process.env.NODE_ENV !== 'production') {
+            console.log('[ENROLL_QR] apiUrl=', apiUrl);
             console.log('[ENROLL_QR] raw serverBaseUrl=', rawServerBaseUrl);
             console.log('[ENROLL_QR] normalized serverBaseUrl=', normalizedUrl);
         }
@@ -262,14 +244,8 @@ export const devicesService = {
             deviceId,
             qrPayload,
             normalizedServerBaseUrl: normalizedUrl,
-            portFixed,
         };
     },
-
-    /**
-     * Cleanup stale devices
-     * POST /api/devices/cleanup-stale
-     */
     async cleanupStaleDevices(olderThanSeconds: number = 2592000): Promise<{ count: number }> {
         const response = await axiosInstance.post<ApiResponse<{ count: number }>>('/devices/cleanup-stale', {
             olderThanSeconds
