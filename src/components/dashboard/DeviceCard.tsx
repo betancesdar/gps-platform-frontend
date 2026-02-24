@@ -101,15 +101,20 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         setActionError(null);
         setIsActionLoading(true);
         try {
-            if (action === 'pause') {
-                await pauseDevice(device.id);
-                setStreamInfo(prev => prev ? { ...prev, status: 'paused' } : null);
+            let result;
+            if (action === 'pause') result = await pauseDevice(device.id);
+            if (action === 'resume') result = await resumeDevice(device.id);
+            if (action === 'stop') result = await stopDevice(device.id);
+
+            if (result && action !== 'stop') {
+                setStreamInfo({
+                    speedApplied: result.speedApplied,
+                    engineMode: result.engineMode,
+                    status: result.status
+                });
+            } else if (action === 'stop') {
+                setStreamInfo(null);
             }
-            if (action === 'resume') {
-                await resumeDevice(device.id);
-                setStreamInfo(prev => prev ? { ...prev, status: 'running' } : null);
-            }
-            if (action === 'stop') await stopDevice(device.id);
         } catch (err: any) {
             setActionError(`Error: ${err.message}`);
         } finally {

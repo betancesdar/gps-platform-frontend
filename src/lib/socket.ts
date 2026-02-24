@@ -15,7 +15,7 @@
  * Source of truth: NEXT_PUBLIC_API_URL (same var used by axiosInstance).
  * Fallback: window.location.hostname + :4000 when in browser.
  */
-export function buildWsUrl(token: string, deviceId?: string): string {
+export function buildWsUrl(token: string): string {
     // Derive the HTTP base the same way axios does
     const apiBase: string =
         process.env.NEXT_PUBLIC_API_URL ||
@@ -38,8 +38,7 @@ export function buildWsUrl(token: string, deviceId?: string): string {
             .replace(/\/[^/]*$/, '') + '/ws';
     }
 
-    const wsUrl = `${wsBase}?token=${encodeURIComponent(token)}${deviceId ? `&deviceId=${encodeURIComponent(deviceId)}` : ''
-        }`;
+    const wsUrl = `${wsBase}?token=${encodeURIComponent(token)}`;
 
     if (process.env.NODE_ENV !== 'production') {
         console.log('[DASH_WS] apiBaseUrl=', apiBase);
@@ -98,9 +97,10 @@ export const isConnected = (): boolean => {
 /**
  * Connect to WebSocket server
  * @param token JWT token from login
- * @param deviceId Optional device ID (for Android clients)
  */
-export const connectSocket = (token: string, deviceId?: string): WebSocket => {
+export const connectSocket = (token: string): WebSocket | null => {
+    if (!token) return null;
+
     // Disconnect existing socket
     if (socket) {
         disconnectSocket();
@@ -108,10 +108,9 @@ export const connectSocket = (token: string, deviceId?: string): WebSocket => {
 
     // Store for reconnection
     currentToken = token;
-    currentDeviceId = deviceId || null;
 
     // Build WebSocket URL with correct host, port, and /ws path
-    const wsUrl = buildWsUrl(token, deviceId);
+    const wsUrl = buildWsUrl(token);
 
     console.log('🔌 Connecting to WebSocket:', wsUrl.replace(token, 'TOKEN_HIDDEN'));
     notifyStatus('connecting');
@@ -179,7 +178,7 @@ const attemptReconnect = () => {
 
     reconnectTimeout = setTimeout(() => {
         if (currentToken) {
-            connectSocket(currentToken, currentDeviceId || undefined);
+            connectSocket(currentToken);
         }
     }, RECONNECT_DELAY);
 };
@@ -194,7 +193,6 @@ export const disconnectSocket = (): void => {
     }
 
     currentToken = null;
-    currentDeviceId = null;
     reconnectAttempts = 0;
 
     if (socket) {

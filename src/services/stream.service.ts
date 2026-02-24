@@ -49,33 +49,33 @@ export const streamService = {
      * Pause a stream
      * POST /api/stream/pause
      */
-    async pause(deviceId: string): Promise<{ success: boolean }> {
-        const response = await axiosInstance.post<ApiResponse<any>>('/stream/pause', {
+    async pause(deviceId: string): Promise<StreamStatus | null> {
+        const response = await axiosInstance.post<ApiResponse<StreamStatus>>('/stream/pause', {
             deviceId,
         });
-        return { success: response.data.success };
+        return response.data.data;
     },
 
     /**
      * Resume a stream
      * POST /api/stream/resume
      */
-    async resume(deviceId: string): Promise<{ success: boolean }> {
-        const response = await axiosInstance.post<ApiResponse<any>>('/stream/resume', {
+    async resume(deviceId: string): Promise<StreamStatus | null> {
+        const response = await axiosInstance.post<ApiResponse<StreamStatus>>('/stream/resume', {
             deviceId,
         });
-        return { success: response.data.success };
+        return response.data.data;
     },
 
     /**
      * Stop a stream
      * POST /api/stream/stop
      */
-    async stop(deviceId: string): Promise<{ success: boolean }> {
-        const response = await axiosInstance.post<ApiResponse<any>>('/stream/stop', {
+    async stop(deviceId: string): Promise<StreamStatus | null> {
+        const response = await axiosInstance.post<ApiResponse<StreamStatus>>('/stream/stop', {
             deviceId,
         });
-        return { success: response.data.success };
+        return response.data.data;
     },
 
     /**
