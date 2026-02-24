@@ -101,15 +101,20 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         }
     };
 
+    const [isActionLoading, setIsActionLoading] = useState(false);
+
     const handleControl = async (e: React.MouseEvent, action: 'pause' | 'resume' | 'stop') => {
         e.stopPropagation();
         setActionError(null);
+        setIsActionLoading(true);
         try {
             if (action === 'pause') await pauseDevice(device.id);
             if (action === 'resume') await resumeDevice(device.id);
             if (action === 'stop') await stopDevice(device.id);
         } catch (err: any) {
             setActionError(`Error: ${err.message}`);
+        } finally {
+            setIsActionLoading(false);
         }
     };
 
@@ -343,7 +348,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                     whileTap={{ scale: 0.98 }}
                                     className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
                                     onClick={(e) => handleControl(e, 'pause')}
-                                    disabled={isLoading}
+                                    disabled={isActionLoading}
                                 >
                                     <Pause className="w-4 h-4 fill-current" /> Pause
                                 </motion.button>
@@ -353,7 +358,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                     whileTap={{ scale: 0.98 }}
                                     className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
                                     onClick={(e) => handleControl(e, 'resume')}
-                                    disabled={isLoading}
+                                    disabled={isActionLoading}
                                 >
                                     <Play className="w-4 h-4 fill-current" /> Resume
                                 </motion.button>
@@ -363,7 +368,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                     whileTap={{ scale: 0.98 }}
                                     className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100/80 transition-colors shadow-sm"
                                     onClick={(e) => handleControl(e, 'stop')}
-                                    disabled={isLoading}
+                                    disabled={isActionLoading}
                                 >
                                     <Square className="w-4 h-4 fill-current" /> Stop Simulation
                                 </motion.button>
