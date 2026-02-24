@@ -106,7 +106,7 @@ const DeviceMarker = memo(({
                     <div className="space-y-1.5 text-xs text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
                         <div className="flex justify-between">
                             <span>Speed:</span>
-                            <span className="font-mono font-medium text-gray-900">{(location.speed * 3.6).toFixed(1)} km/h</span>
+                            <span className="font-mono font-medium text-gray-900">{location.speed.toFixed(1)} km/h</span>
                         </div>
                         <div className="flex justify-between">
                             <span>Heading:</span>

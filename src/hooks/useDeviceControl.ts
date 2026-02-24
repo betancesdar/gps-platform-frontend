@@ -3,17 +3,35 @@
 import { useState } from 'react';
 import { streamService, StreamOptions } from '@/services/stream.service';
 import { useDevicesStore } from '@/store/useDevicesStore';
+import { create } from 'zustand';
 
-const pendingActions = new Set<string>();
+interface DeviceControlState {
+    pendingActions: Record<string, boolean>;
+    setPending: (deviceId: string, isPending: boolean) => void;
+}
+
+export const useDeviceControlStore = create<DeviceControlState>((set) => ({
+    pendingActions: {},
+    setPending: (deviceId, isPending) =>
+        set((state) => ({
+            pendingActions: {
+                ...state.pendingActions,
+                [deviceId]: isPending,
+            },
+        })),
+}));
 
 export const useDeviceControl = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const updateDeviceStatus = useDevicesStore((state) => state.updateDeviceStatus);
+    const { pendingActions, setPending } = useDeviceControlStore();
+
+    const isDevicePending = (deviceId: string) => !!pendingActions[deviceId];
 
     const startDevice = async (deviceId: string, routeId: string, speed?: number) => {
-        if (pendingActions.has(deviceId)) return null;
-        pendingActions.add(deviceId);
+        if (isDevicePending(deviceId)) return null;
+        setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
         try {
@@ -32,14 +50,14 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            pendingActions.delete(deviceId);
+            setPending(deviceId, false);
             setIsLoading(false);
         }
     };
 
     const pauseDevice = async (deviceId: string) => {
-        if (pendingActions.has(deviceId)) return;
-        pendingActions.add(deviceId);
+        if (isDevicePending(deviceId)) return;
+        setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
         try {
@@ -50,14 +68,14 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            pendingActions.delete(deviceId);
+            setPending(deviceId, false);
             setIsLoading(false);
         }
     };
 
     const resumeDevice = async (deviceId: string) => {
-        if (pendingActions.has(deviceId)) return;
-        pendingActions.add(deviceId);
+        if (isDevicePending(deviceId)) return;
+        setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
         try {
@@ -68,14 +86,14 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            pendingActions.delete(deviceId);
+            setPending(deviceId, false);
             setIsLoading(false);
         }
     };
 
     const stopDevice = async (deviceId: string) => {
-        if (pendingActions.has(deviceId)) return;
-        pendingActions.add(deviceId);
+        if (isDevicePending(deviceId)) return;
+        setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
         try {
@@ -87,7 +105,7 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            pendingActions.delete(deviceId);
+            setPending(deviceId, false);
             setIsLoading(false);
         }
     };
@@ -107,6 +125,7 @@ export const useDeviceControl = () => {
         stopDevice,
         getStreamStatus,
         isLoading,
+        isDevicePending,
         error,
     };
 };

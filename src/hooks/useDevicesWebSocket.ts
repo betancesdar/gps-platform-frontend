@@ -64,6 +64,13 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     console.warn(`[DASH_WS] Closed (code=${event.code}) url=${maskedUrl}`);
                 }
                 socketRef.current = null;
+
+                // Stop reconnecting on application/auth errors
+                if (event.code === 1008 || event.code >= 4000) {
+                    console.error(`[DASH_WS] Fatal connection error (code=${event.code}). Stopping reconnect attempts.`);
+                    return;
+                }
+
                 attemptReconnect();
             };
 
@@ -108,7 +115,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     lat: message.latitude,
                     lng: message.longitude,
                     bearing: message.bearing,
-                    speed: message.speed,
+                    speed: message.speed * 3.6, // Convert m/s to km/h once here
                     accuracy: message.accuracy,
                     state: message.state,
                 });

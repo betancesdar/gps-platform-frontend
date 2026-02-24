@@ -10,6 +10,9 @@ interface DevicesState {
     // State for filtering
     showOfflineHistory: boolean;
 
+    // Route Selection State
+    selectedRouteIds: Record<string, string>;
+
     // Actions
     setDevices: (devices: Device[]) => void;
     addDevice: (device: Device) => void;
@@ -25,6 +28,7 @@ interface DevicesState {
     toggleShowOfflineHistory: () => void;
     loadDevices: () => Promise<void>;
     deleteDevice: (deviceId: string) => Promise<void>;
+    setSelectedRouteId: (deviceId: string, routeId: string) => void;
 }
 
 export const useDevicesStore = create<DevicesState>((set, get) => ({
@@ -33,6 +37,7 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
     isLoading: false,
     error: null,
     showOfflineHistory: false, // Default: Hide offline history (filter active only)
+    selectedRouteIds: {},
 
     setDevices: (devices) => set({ devices }),
 
@@ -120,6 +125,14 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
             throw new Error(err?.message || 'Failed to delete device');
         }
     },
+
+    setSelectedRouteId: (deviceId: string, routeId: string) =>
+        set((state) => ({
+            selectedRouteIds: {
+                ...state.selectedRouteIds,
+                [deviceId]: routeId,
+            },
+        })),
 }));
 
 // Re-export Device type for convenience

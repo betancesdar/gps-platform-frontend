@@ -40,11 +40,15 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     onSelect,
     isSelected = false,
 }) => {
-    const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading } = useDeviceControl();
+    const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading, isDevicePending } = useDeviceControl();
+    const isPending = isDevicePending(device.id);
+
     const routes = useRoutesStore((state) => state.routes);
     const safeRoutes = Array.isArray(routes) ? routes : [];
 
-    const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+    const selectedRouteId = useDevicesStore((state) => state.selectedRouteIds[device.id] || '');
+    const setSelectedRouteId = (routeId: string) => useDevicesStore.getState().setSelectedRouteId(device.id, routeId);
+
     const [speed, setSpeed] = useState<number>(30); // km/h
     const [isHovered, setIsHovered] = useState(false);
     const [streamInfo, setStreamInfo] = useState<{ speedApplied?: number; engineMode?: string; status?: string } | null>(null);
@@ -82,7 +86,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
             setActionError('Por favor selecciona una ruta primero');
             return;
         }
-        if (isLoading) return; // Prevent double submit
+        if (isPending) return; // Prevent double submit
 
         try {
             const result = await startDevice(device.id, selectedRouteId, speed);
@@ -148,7 +152,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
             onHoverEnd={() => setIsHovered(false)}
             onClick={() => onSelect?.(device.id)}
             className={`
-                relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer
+                relative rounded-2xl border transition-all duration-300 cursor-pointer
                 ${isSelected
                     ? 'border-blue-500 ring-2 ring-blue-500/30 shadow-2xl shadow-blue-500/20 bg-white'
                     : 'border-white/40 bg-white/80 hover:border-blue-300/50 hover:shadow-xl hover:shadow-blue-500/10 backdrop-blur-xl'
@@ -156,7 +160,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
             `}
         >
             {/* Background Gradient Accent */}
-            <div className={`absolute top-0 left-0 w-full h-1 transition-colors duration-300 ${isExecuting ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
+            <div className={`absolute top-0 left-0 w-full h-1 rounded-t-2xl transition-colors duration-300 ${isExecuting ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
                 isOnline ? 'bg-gradient-to-r from-blue-400 to-indigo-500' :
                     'bg-gradient-to-r from-gray-300 to-gray-400'
                 }`} />
@@ -296,9 +300,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                     }
                                 `}
                                 onClick={handleStart}
-                                disabled={isLoading || !selectedRouteId || isOffline}
+                                disabled={isPending || !selectedRouteId || isOffline}
                             >
-                                {isLoading ? (
+                                {isPending ? (
                                     <span className="flex items-center gap-2">
                                         <div className="w-4 h-4 rounded-full border-2 border-green-200 border-t-white animate-spin" />
                                         Starting...
@@ -353,7 +357,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                         whileTap={{ scale: 0.98 }}
                                         className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
                                         onClick={(e) => handleControl(e, 'pause')}
-                                        disabled={isActionLoading}
+                                        disabled={isPending}
                                     >
                                         <Pause className="w-4 h-4 fill-current" /> Pause
                                     </motion.button>
@@ -363,7 +367,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                         whileTap={{ scale: 0.98 }}
                                         className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
                                         onClick={(e) => handleControl(e, 'resume')}
-                                        disabled={isActionLoading}
+                                        disabled={isPending}
                                     >
                                         <Play className="w-4 h-4 fill-current" /> Resume
                                     </motion.button>
@@ -374,7 +378,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                     whileTap={{ scale: 0.98 }}
                                     className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100/80 transition-colors shadow-sm"
                                     onClick={(e) => handleControl(e, 'stop')}
-                                    disabled={isActionLoading}
+                                    disabled={isPending}
                                 >
                                     <Square className="w-4 h-4 fill-current" /> Stop Simulation
                                 </motion.button>
