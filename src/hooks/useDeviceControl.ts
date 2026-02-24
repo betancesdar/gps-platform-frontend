@@ -17,10 +17,13 @@ export const useDeviceControl = () => {
                 speed: speed || 30, // Default to 30 km/h
                 loop: false,
             };
-            const result = await streamService.start(deviceId, routeId, options);
+            // Optimistic UI update
             updateDeviceStatus(deviceId, 'EXECUTING');
+            const result = await streamService.start(deviceId, routeId, options);
             return result;
         } catch (err: any) {
+            // Revert optimistic update on failure
+            updateDeviceStatus(deviceId, 'ONLINE');
             const message = err.response?.data?.message || err.message || 'Error starting stream';
             setError(message);
             throw err;

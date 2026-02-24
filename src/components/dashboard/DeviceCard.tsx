@@ -48,15 +48,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const [speed, setSpeed] = useState<number>(30); // km/h
     const [isHovered, setIsHovered] = useState(false);
     const [streamInfo, setStreamInfo] = useState<{ speedApplied?: number; engineMode?: string; status?: string } | null>(null);
-    const [slowLoading, setSlowLoading] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
-
-    React.useEffect(() => {
-        let timer: any;
-        if (isLoading) timer = setTimeout(() => setSlowLoading(true), 1500);
-        else setSlowLoading(false);
-        return () => clearTimeout(timer);
-    }, [isLoading]);
 
     const routeOptions = React.useMemo(() => safeRoutes.map(r => ({
         id: r.id,
@@ -303,8 +295,8 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                             >
                                 {isLoading ? (
                                     <span className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                        {slowLoading ? 'Starting stream...' : 'Starting...'}
+                                        <div className="w-4 h-4 rounded-full border-2 border-green-200 border-t-white animate-spin" />
+                                        Starting...
                                     </span>
                                 ) : (
                                     <span className="flex items-center gap-2">
