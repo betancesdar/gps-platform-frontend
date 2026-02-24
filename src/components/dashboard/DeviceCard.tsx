@@ -47,7 +47,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const [selectedRouteId, setSelectedRouteId] = useState<string>('');
     const [speed, setSpeed] = useState<number>(30); // km/h
     const [isHovered, setIsHovered] = useState(false);
-    const [streamInfo, setStreamInfo] = useState<{ speedApplied?: number; engineMode?: string } | null>(null);
+    const [streamInfo, setStreamInfo] = useState<{ speedApplied?: number; engineMode?: string; status?: string } | null>(null);
     const [slowLoading, setSlowLoading] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
 
@@ -72,7 +72,8 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                     if (res) {
                         setStreamInfo({
                             speedApplied: res.speedApplied,
-                            engineMode: res.engineMode
+                            engineMode: res.engineMode,
+                            status: res.status
                         });
                     }
                 })
@@ -94,7 +95,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         try {
             const result = await startDevice(device.id, selectedRouteId, speed);
             if (result) {
-                setStreamInfo({ speedApplied: result.speedApplied, engineMode: result.engineMode });
+                setStreamInfo({ speedApplied: result.speedApplied, engineMode: result.engineMode, status: result.status });
             }
         } catch (err: any) {
             setActionError(`Error al iniciar: ${err.message}`);
@@ -108,8 +109,14 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         setActionError(null);
         setIsActionLoading(true);
         try {
-            if (action === 'pause') await pauseDevice(device.id);
-            if (action === 'resume') await resumeDevice(device.id);
+            if (action === 'pause') {
+                await pauseDevice(device.id);
+                setStreamInfo(prev => prev ? { ...prev, status: 'paused' } : null);
+            }
+            if (action === 'resume') {
+                await resumeDevice(device.id);
+                setStreamInfo(prev => prev ? { ...prev, status: 'running' } : null);
+            }
             if (action === 'stop') await stopDevice(device.id);
         } catch (err: any) {
             setActionError(`Error: ${err.message}`);
@@ -343,25 +350,27 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                             )}
 
                             <div className="grid grid-cols-2 gap-3">
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
-                                    onClick={(e) => handleControl(e, 'pause')}
-                                    disabled={isActionLoading}
-                                >
-                                    <Pause className="w-4 h-4 fill-current" /> Pause
-                                </motion.button>
-
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
-                                    onClick={(e) => handleControl(e, 'resume')}
-                                    disabled={isActionLoading}
-                                >
-                                    <Play className="w-4 h-4 fill-current" /> Resume
-                                </motion.button>
+                                {streamInfo?.status !== 'paused' ? (
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
+                                        onClick={(e) => handleControl(e, 'pause')}
+                                        disabled={isActionLoading}
+                                    >
+                                        <Pause className="w-4 h-4 fill-current" /> Pause
+                                    </motion.button>
+                                ) : (
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
+                                        onClick={(e) => handleControl(e, 'resume')}
+                                        disabled={isActionLoading}
+                                    >
+                                        <Play className="w-4 h-4 fill-current" /> Resume
+                                    </motion.button>
+                                )}
 
                                 <motion.button
                                     whileHover={{ scale: 1.02, backgroundColor: '#fee2e2' }}
