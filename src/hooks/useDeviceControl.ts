@@ -17,8 +17,9 @@ export const useDeviceControl = () => {
                 speed: speed || 30, // Default to 30 km/h
                 loop: false,
             };
-            await streamService.start(deviceId, routeId, options);
+            const result = await streamService.start(deviceId, routeId, options);
             updateDeviceStatus(deviceId, 'EXECUTING');
+            return result;
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error starting stream';
             setError(message);

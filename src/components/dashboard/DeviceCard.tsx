@@ -7,6 +7,8 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { useDeviceControl } from '@/hooks/useDeviceControl';
 import { useRoutesStore } from '@/store/useRoutesStore';
 import { useDevicesStore } from '@/store/useDevicesStore';
+import { VirtualSelect } from '../ui/VirtualSelect';
+import { streamService } from '@/services/stream.service';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/es';
@@ -33,7 +35,7 @@ interface DeviceCardProps {
     isSelected?: boolean;
 }
 
-export const DeviceCard: React.FC<DeviceCardProps> = ({
+const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     device,
     onSelect,
     isSelected = false,
@@ -45,43 +47,84 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
     const [selectedRouteId, setSelectedRouteId] = useState<string>('');
     const [speed, setSpeed] = useState<number>(30); // km/h
     const [isHovered, setIsHovered] = useState(false);
+    const [streamInfo, setStreamInfo] = useState<{ speedApplied?: number; engineMode?: string } | null>(null);
+    const [slowLoading, setSlowLoading] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
+
+    React.useEffect(() => {
+        let timer: any;
+        if (isLoading) timer = setTimeout(() => setSlowLoading(true), 1500);
+        else setSlowLoading(false);
+        return () => clearTimeout(timer);
+    }, [isLoading]);
+
+    const routeOptions = React.useMemo(() => safeRoutes.map(r => ({
+        id: r.id,
+        label: `${r.name} (${r.pointCount || 0} pts)`
+    })), [safeRoutes]);
+
+    const isExecuting = device.status === 'EXECUTING';
+
+    React.useEffect(() => {
+        if (isExecuting) {
+            streamService.getStatus(device.id)
+                .then(res => {
+                    if (res) {
+                        setStreamInfo({
+                            speedApplied: res.speedApplied,
+                            engineMode: res.engineMode
+                        });
+                    }
+                })
+                .catch(() => { });
+        } else {
+            setStreamInfo(null);
+        }
+    }, [isExecuting, device.id]);
 
     const handleStart = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        setActionError(null);
         if (!selectedRouteId) {
-            alert('Por favor selecciona una ruta primero');
+            setActionError('Por favor selecciona una ruta primero');
             return;
         }
+        if (isLoading) return; // Prevent double submit
+
         try {
-            await startDevice(device.id, selectedRouteId, speed);
+            const result = await startDevice(device.id, selectedRouteId, speed);
+            if (result) {
+                setStreamInfo({ speedApplied: result.speedApplied, engineMode: result.engineMode });
+            }
         } catch (err: any) {
-            alert(`Error al iniciar: ${err.message}`);
+            setActionError(`Error al iniciar: ${err.message}`);
         }
     };
 
     const handleControl = async (e: React.MouseEvent, action: 'pause' | 'resume' | 'stop') => {
         e.stopPropagation();
+        setActionError(null);
         try {
             if (action === 'pause') await pauseDevice(device.id);
             if (action === 'resume') await resumeDevice(device.id);
             if (action === 'stop') await stopDevice(device.id);
         } catch (err: any) {
-            alert(`Error: ${err.message}`);
+            setActionError(`Error: ${err.message}`);
         }
     };
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        setActionError(null);
         if (confirm('Are you sure you want to delete this device? This cannot be undone.')) {
             try {
                 await useDevicesStore.getState().deleteDevice(device.id);
             } catch (error) {
-                alert('Failed to delete device');
+                setActionError('Failed to delete device');
             }
         }
     };
 
-    const isExecuting = device.status === 'EXECUTING';
     const isOnline = device.status === 'ONLINE';
     const isOffline = device.status === 'OFFLINE';
 
@@ -105,8 +148,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         >
             {/* Background Gradient Accent */}
             <div className={`absolute top-0 left-0 w-full h-1 transition-colors duration-300 ${isExecuting ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
-                    isOnline ? 'bg-gradient-to-r from-blue-400 to-indigo-500' :
-                        'bg-gradient-to-r from-gray-300 to-gray-400'
+                isOnline ? 'bg-gradient-to-r from-blue-400 to-indigo-500' :
+                    'bg-gradient-to-r from-gray-300 to-gray-400'
                 }`} />
 
             <div className="p-5 space-y-4">
@@ -179,8 +222,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                     </div>
 
                     <div className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 ${isExecuting ? 'bg-green-50/80 border-green-100' :
-                            isOnline ? 'bg-blue-50/80 border-blue-100' :
-                                'bg-gray-50/80 border-gray-100'
+                        isOnline ? 'bg-blue-50/80 border-blue-100' :
+                            'bg-gray-50/80 border-gray-100'
                         }`}>
                         <StatusBadge status={device.status} />
                     </div>
@@ -201,25 +244,15 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                     <Navigation className="w-3 h-3" /> Select Route
                                 </label>
-                                <div className="relative group">
-                                    <select
+                                <div className="relative group w-full">
+                                    <VirtualSelect
+                                        options={routeOptions}
                                         value={selectedRouteId}
-                                        onChange={(e) => setSelectedRouteId(e.target.value)}
-                                        className="w-full pl-3 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none cursor-pointer transition-all hover:bg-white hover:shadow-sm"
+                                        onChange={setSelectedRouteId}
+                                        placeholder={safeRoutes.length === 0 ? '-- No routes --' : 'Choose a route...'}
                                         disabled={safeRoutes.length === 0}
-                                    >
-                                        <option value="">
-                                            {safeRoutes.length === 0 ? '-- No routes --' : 'Choose a route...'}
-                                        </option>
-                                        {safeRoutes.map((route) => (
-                                            <option key={route.id} value={route.id}>
-                                                {route.name} ({route.pointCount || 0} pts)
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
-                                        <MoreVertical className="w-4 h-4" />
-                                    </div>
+                                        className="w-full"
+                                    />
                                 </div>
                             </div>
 
@@ -256,9 +289,24 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                                 onClick={handleStart}
                                 disabled={isLoading || !selectedRouteId || isOffline}
                             >
-                                <Play className="w-4 h-4 fill-current" />
-                                {isOffline ? 'Device Offline' : 'Start Simulation'}
+                                {isLoading ? (
+                                    <span className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                        {slowLoading ? 'Starting stream...' : 'Starting...'}
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <Play className="w-4 h-4 fill-current" />
+                                        {isOffline ? 'Device Offline' : 'Start Simulation'}
+                                    </span>
+                                )}
                             </motion.button>
+
+                            {actionError && (
+                                <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 mt-2">
+                                    {actionError}
+                                </div>
+                            )}
                         </motion.div>
                     ) : (
                         <motion.div
@@ -266,38 +314,66 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100"
+                            className="flex flex-col gap-3 pt-2 border-t border-gray-100"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
-                                onClick={(e) => handleControl(e, 'pause')}
-                                disabled={isLoading}
-                            >
-                                <Pause className="w-4 h-4 fill-current" /> Pause
-                            </motion.button>
+                            {streamInfo && (
+                                <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl space-y-1">
+                                    <div className="text-xs font-semibold text-blue-800 flex justify-between">
+                                        <span>Speed Configured:</span>
+                                        <span>{speed} km/h</span>
+                                    </div>
+                                    {streamInfo.speedApplied !== undefined && (
+                                        <div className="text-xs font-semibold text-emerald-700 flex justify-between">
+                                            <span>Speed Applied:</span>
+                                            <span>{streamInfo.speedApplied} km/h</span>
+                                        </div>
+                                    )}
+                                    {streamInfo.engineMode && (
+                                        <div className="text-xs font-medium text-gray-500 mt-1 uppercase">
+                                            Engine: {streamInfo.engineMode}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
-                                onClick={(e) => handleControl(e, 'resume')}
-                                disabled={isLoading}
-                            >
-                                <Play className="w-4 h-4 fill-current" /> Resume
-                            </motion.button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
+                                    onClick={(e) => handleControl(e, 'pause')}
+                                    disabled={isLoading}
+                                >
+                                    <Pause className="w-4 h-4 fill-current" /> Pause
+                                </motion.button>
 
-                            <motion.button
-                                whileHover={{ scale: 1.02, backgroundColor: '#fee2e2' }}
-                                whileTap={{ scale: 0.98 }}
-                                className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100/80 transition-colors shadow-sm"
-                                onClick={(e) => handleControl(e, 'stop')}
-                                disabled={isLoading}
-                            >
-                                <Square className="w-4 h-4 fill-current" /> Stop Simulation
-                            </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
+                                    onClick={(e) => handleControl(e, 'resume')}
+                                    disabled={isLoading}
+                                >
+                                    <Play className="w-4 h-4 fill-current" /> Resume
+                                </motion.button>
+
+                                <motion.button
+                                    whileHover={{ scale: 1.02, backgroundColor: '#fee2e2' }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100/80 transition-colors shadow-sm"
+                                    onClick={(e) => handleControl(e, 'stop')}
+                                    disabled={isLoading}
+                                >
+                                    <Square className="w-4 h-4 fill-current" /> Stop Simulation
+                                </motion.button>
+                            </div>
+
+                            {actionError && (
+                                <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 mt-2">
+                                    {actionError}
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -305,3 +381,13 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
         </motion.div>
     );
 };
+
+export const DeviceCard = React.memo(DeviceCardComponent, (prevProps, nextProps) => {
+    return (
+        prevProps.device.id === nextProps.device.id &&
+        prevProps.device.status === nextProps.device.status &&
+        prevProps.device.lastSeen === nextProps.device.lastSeen &&
+        prevProps.device.assignedRoute?.id === nextProps.device.assignedRoute?.id &&
+        prevProps.isSelected === nextProps.isSelected
+    );
+});

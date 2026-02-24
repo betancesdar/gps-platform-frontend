@@ -17,6 +17,8 @@ export interface StreamStatus {
     routeId: string;
     status: 'running' | 'paused' | 'stopped';
     speed: number;
+    speedApplied?: number;
+    engineMode?: 'distance' | 'index';
     loop: boolean;
     currentIndex?: number;
     totalPoints?: number;

@@ -7,6 +7,7 @@ import { devicesService } from '@/services/devices.service';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { StatusBadge } from '../ui/StatusBadge';
+import { VirtualSelect } from '../ui/VirtualSelect';
 
 export const RouteAssignment: React.FC = () => {
     const devices = useDevicesStore((state) => state.devices);
@@ -18,6 +19,16 @@ export const RouteAssignment: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+
+    const deviceOptions = React.useMemo(() => devices.map(d => ({
+        id: d.id,
+        label: `${d.name} (${d.status})${d.assignedRoute ? ` - Current: ${d.assignedRoute.name}` : ''}`
+    })), [devices]);
+
+    const routeOptions = React.useMemo(() => routes.map(route => ({
+        id: route.id,
+        label: `${route.name} (${route.points?.length || 0} points, ${route.speed} km/h)`
+    })), [routes]);
 
     const handleAssign = async () => {
         if (!selectedDeviceId || !selectedRouteId) {
@@ -61,19 +72,12 @@ export const RouteAssignment: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Select Device
                     </label>
-                    <select
+                    <VirtualSelect
+                        options={deviceOptions}
                         value={selectedDeviceId}
-                        onChange={(e) => setSelectedDeviceId(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">-- Select a device --</option>
-                        {devices.map((device) => (
-                            <option key={device.id} value={device.id}>
-                                {device.name} ({device.status})
-                                {device.assignedRoute && ` - Current: ${device.assignedRoute.name}`}
-                            </option>
-                        ))}
-                    </select>
+                        onChange={setSelectedDeviceId}
+                        placeholder="-- Select a device --"
+                    />
                 </div>
 
                 {/* Route Selection */}
@@ -81,18 +85,12 @@ export const RouteAssignment: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Select Route
                     </label>
-                    <select
+                    <VirtualSelect
+                        options={routeOptions}
                         value={selectedRouteId}
-                        onChange={(e) => setSelectedRouteId(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">-- Select a route --</option>
-                        {routes.map((route) => (
-                            <option key={route.id} value={route.id}>
-                                {route.name} ({route.points?.length || 0} points, {route.speed} km/h)
-                            </option>
-                        ))}
-                    </select>
+                        onChange={setSelectedRouteId}
+                        placeholder="-- Select a route --"
+                    />
                 </div>
 
                 {/* Preview */}
