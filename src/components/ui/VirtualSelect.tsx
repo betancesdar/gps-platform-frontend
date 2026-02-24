@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
 import { ChevronDown, Check, Search } from 'lucide-react';
 
 interface Option {
@@ -104,14 +103,11 @@ export const VirtualSelect: React.FC<VirtualSelectProps> = ({
                     {filteredOptions.length === 0 ? (
                         <div className="p-3 text-sm text-gray-500 text-center">No results found</div>
                     ) : (
-                        <List
-                            height={Math.min(200, filteredOptions.length * 36)}
-                            itemCount={filteredOptions.length}
-                            itemSize={36}
-                            width="100%"
-                        >
-                            {Row}
-                        </List>
+                        <div className="max-h-[200px] overflow-y-auto w-full">
+                            {filteredOptions.map((option, index) => (
+                                <Row key={option.id} index={index} style={{}} />
+                            ))}
+                        </div>
                     )}
                 </div>
             )}
