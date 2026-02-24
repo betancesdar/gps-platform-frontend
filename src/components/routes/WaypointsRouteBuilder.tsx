@@ -6,8 +6,6 @@ import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
 import { useGeocodeAutocomplete } from '@/hooks/useGeocodeAutocomplete';
 import { routesService } from '@/services/routes.service';
-import { devicesService } from '@/services/devices.service';
-import { streamService } from '@/services/stream.service';
 import { WaypointInput } from '@/types/routeWaypoints';
 
 // Dynamic import for the Map component
@@ -210,19 +208,6 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
 
     // Post-creation state
     const [createdRouteId, setCreatedRouteId] = useState<string | null>(null);
-    const [assignedDevice, setAssignedDevice] = useState<string | null>(null);
-    const [devices, setDevices] = useState<any[]>([]);
-    const [selectedDeviceId, setSelectedDeviceId] = useState('');
-    const [isAssigning, setIsAssigning] = useState(false);
-    const [isStartingStream, setIsStartingStream] = useState(false);
-    const [streamStarted, setStreamStarted] = useState(false);
-
-    // Initial load of devices for assignment
-    useEffect(() => {
-        if (createdRouteId) {
-            devicesService.getDevices().then(setDevices).catch(console.error);
-        }
-    }, [createdRouteId]);
 
     // --- Handlers ---
     const handleMapClick = (lat: number, lng: number) => {
@@ -279,33 +264,6 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
         }
     };
 
-    const handleAssign = async () => {
-        if (!selectedDeviceId || !createdRouteId) return;
-        setIsAssigning(true);
-        try {
-            await devicesService.assignRoute(selectedDeviceId, createdRouteId);
-            setAssignedDevice(selectedDeviceId);
-        } catch (error: any) {
-            alert(`Failed to assign: ${error.message}`);
-        } finally {
-            setIsAssigning(false);
-        }
-    };
-
-    const handleStartStream = async () => {
-        if (!assignedDevice) return;
-        setIsStartingStream(true);
-        try {
-            await streamService.start(assignedDevice, undefined, { speed: 40, loop: true });
-            setStreamStarted(true);
-            setTimeout(() => onRouteCreated(createdRouteId!), 2000);
-        } catch (error: any) {
-            alert(`Failed to start stream: ${error.message}`);
-        } finally {
-            setIsStartingStream(false);
-        }
-    };
-
     // --- Render View ---
     if (createdRouteId) {
         return (
@@ -314,40 +272,12 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
                     <span className="text-4xl">✅</span>
                 </div>
                 <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Route Created!</h3>
-                <p className="text-gray-500 mb-8 max-w-xs text-center">Your route is ready. Assign it to a device to begin the simulation immediately.</p>
+                <p className="text-gray-500 mb-8 max-w-xs text-center">Your route formulation has been saved successfully.</p>
 
-                <div className="w-full max-w-sm space-y-4">
-                    {!assignedDevice ? (
-                        <div className="bg-gray-50/50 p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Select Device to Execute</label>
-                            <div className="flex gap-2">
-                                <select
-                                    value={selectedDeviceId}
-                                    onChange={(e) => setSelectedDeviceId(e.target.value)}
-                                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-medium bg-white"
-                                >
-                                    <option value="">Choose device...</option>
-                                    {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.status})</option>)}
-                                </select>
-                                <Button onClick={handleAssign} isLoading={isAssigning} disabled={!selectedDeviceId} variant="primary" className="shadow-md shadow-blue-500/20">
-                                    Assign
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100 text-center space-y-4 shadow-inner">
-                            <div className="flex items-center justify-center gap-2 text-blue-800 font-bold bg-white/60 p-2 rounded-lg inline-block mx-auto mb-2">
-                                <span>📱</span>
-                                Device Assigned Successfully
-                            </div>
-                            <Button onClick={handleStartStream} isLoading={isStartingStream} disabled={streamStarted} variant="success" className="w-full justify-center py-4 text-base font-bold shadow-xl shadow-green-500/20 scale-105">
-                                {streamStarted ? '🚀 Simulation Running' : '▶️ Start Simulation Now'}
-                            </Button>
-                        </div>
-                    )}
-                    <button onClick={() => onRouteCreated(createdRouteId)} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                <div className="w-full max-w-sm">
+                    <Button onClick={() => onRouteCreated(createdRouteId)} variant="primary" className="w-full py-3 shadow-lg shadow-blue-500/20 text-sm font-bold">
                         Return to List
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -445,7 +375,7 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
 
                 <div className="flex gap-4 pt-4 mt-auto sticky bottom-0 bg-white/95 backdrop-blur py-4 border-t border-gray-100 z-20">
                     <Button onClick={handleSubmit} isLoading={isCreating} variant="primary" className="flex-1 shadow-lg shadow-blue-500/20 py-3 text-sm font-bold">
-                        Create Route
+                        {isCreating ? 'Generating Route...' : 'Create Route'}
                     </Button>
                     <Button onClick={onCancel} variant="secondary" className="px-6">
                         Cancel

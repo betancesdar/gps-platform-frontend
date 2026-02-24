@@ -6,7 +6,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').re
 // baseURL includes /api so service calls use relative paths like /auth/login
 export const axiosInstance = axios.create({
     baseURL: `${API_BASE}/api`,
-    timeout: 10000,
+    timeout: 60000,
     headers: {
         'Content-Type': 'application/json',
     },

@@ -88,7 +88,7 @@ export const VirtualSelect: React.FC<VirtualSelectProps> = ({
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden">
+                <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden">
                     <div className="p-2 border-b border-gray-100 flex items-center bg-gray-50">
                         <Search className="w-4 h-4 text-gray-400 mr-2" />
                         <input

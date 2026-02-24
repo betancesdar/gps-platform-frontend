@@ -161,12 +161,6 @@ export const AddressRouteBuilder: React.FC<AddressRouteBuilderProps> = ({
     // Workflow State
     const [isCreating, setIsCreating] = useState(false);
     const [createdRouteId, setCreatedRouteId] = useState<string | null>(null);
-    const [assignedDevice, setAssignedDevice] = useState<string | null>(null);
-    const [devices, setDevices] = useState<any[]>([]);
-    const [selectedDeviceId, setSelectedDeviceId] = useState('');
-    const [isAssigning, setIsAssigning] = useState(false);
-    const [isStartingStream, setIsStartingStream] = useState(false);
-    const [streamStarted, setStreamStarted] = useState(false);
 
     const originInputRef = useRef<HTMLInputElement>(null);
     const destInputRef = useRef<HTMLInputElement>(null);
@@ -194,43 +188,6 @@ export const AddressRouteBuilder: React.FC<AddressRouteBuilderProps> = ({
     };
 
     // --- Post-Creation Workflow ---
-    useEffect(() => {
-        if (createdRouteId) {
-            import('@/services/devices.service').then(({ devicesService }) => {
-                devicesService.getDevices().then(setDevices).catch(console.error);
-            });
-        }
-    }, [createdRouteId]);
-
-    const handleAssign = async () => {
-        if (!selectedDeviceId || !createdRouteId) return;
-        setIsAssigning(true);
-        try {
-            const { devicesService } = await import('@/services/devices.service');
-            await devicesService.assignRoute(selectedDeviceId, createdRouteId);
-            setAssignedDevice(selectedDeviceId);
-        } catch (error: any) {
-            alert(`Error assigning: ${error.message}`);
-        } finally {
-            setIsAssigning(false);
-        }
-    };
-
-    const handleStartStream = async () => {
-        if (!assignedDevice || !createdRouteId) return;
-        setIsStartingStream(true);
-        try {
-            const { streamService } = await import('@/services/stream.service');
-            await streamService.start(assignedDevice, createdRouteId, { speed: 40, loop: true });
-            setStreamStarted(true);
-            // Wait a moment then finish
-            setTimeout(() => onRouteCreated(createdRouteId), 1500);
-        } catch (error: any) {
-            alert(`Error starting stream: ${error.message}`);
-        } finally {
-            setIsStartingStream(false);
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -294,54 +251,16 @@ export const AddressRouteBuilder: React.FC<AddressRouteBuilderProps> = ({
                 </div>
 
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Route Ready!</h3>
-                <p className="text-gray-500 mb-8 text-center max-w-md">Your route has been successfully generated. Do you want to start a simulation on a device right now?</p>
+                <p className="text-gray-500 mb-8 text-center max-w-md">Your route has been structured and generated successfully.</p>
 
-                <div className="w-full max-w-sm space-y-4">
-                    {!assignedDevice ? (
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Select Device to Execute</label>
-                            <div className="flex gap-2">
-                                <select
-                                    value={selectedDeviceId}
-                                    onChange={(e) => setSelectedDeviceId(e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                >
-                                    <option value="">Choose device...</option>
-                                    {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.status})</option>)}
-                                </select>
-                                <Button
-                                    onClick={handleAssign}
-                                    isLoading={isAssigning}
-                                    disabled={!selectedDeviceId}
-                                    variant="primary"
-                                >
-                                    Assign
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center space-y-3">
-                            <p className="text-blue-800 font-medium">Device Assigned Successfully</p>
-                            <Button
-                                onClick={handleStartStream}
-                                isLoading={isStartingStream}
-                                disabled={streamStarted}
-                                variant="success"
-                                className="w-full justify-center shadow-lg shadow-green-500/20"
-                            >
-                                {streamStarted ? '🚀 Simulation Started!' : '▶️ Start Simulation Now'}
-                            </Button>
-                        </div>
-                    )}
-
-                    <div className="pt-4 flex justify-center">
-                        <button
-                            onClick={() => onRouteCreated(createdRouteId)}
-                            className="text-gray-500 hover:text-gray-700 text-sm font-medium underline decoration-gray-300 underline-offset-4"
-                        >
-                            Return to Routes List
-                        </button>
-                    </div>
+                <div className="w-full max-w-sm">
+                    <Button
+                        onClick={() => onRouteCreated(createdRouteId)}
+                        variant="primary"
+                        className="w-full justify-center shadow-lg shadow-blue-500/20 py-3"
+                    >
+                        Return to Routes List
+                    </Button>
                 </div>
             </div>
         );
@@ -439,7 +358,9 @@ export const AddressRouteBuilder: React.FC<AddressRouteBuilderProps> = ({
                     </div>
 
                     <div className="pt-2 flex gap-3 sticky bottom-0 bg-white py-4 border-t border-gray-100">
-                        <Button type="submit" variant="primary" isLoading={isCreating} className="flex-1 shadow-lg shadow-blue-500/20 py-3">Generate Route</Button>
+                        <Button type="submit" variant="primary" isLoading={isCreating} className="flex-1 shadow-lg shadow-blue-500/20 py-3">
+                            {isCreating ? 'Generating Route...' : 'Generate Route'}
+                        </Button>
                         <Button type="button" variant="secondary" onClick={onCancel} disabled={isCreating}>Cancel</Button>
                     </div>
                 </form>
