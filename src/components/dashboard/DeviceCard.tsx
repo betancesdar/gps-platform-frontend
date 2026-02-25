@@ -166,20 +166,21 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
             onHoverEnd={() => setIsHovered(false)}
             onClick={() => onSelect?.(device.id)}
             className={`
-                relative rounded-2xl border transition-all duration-300 cursor-pointer
+                relative rounded-3xl border transition-all duration-300 cursor-pointer
+                ${isHovered || isSelected ? 'z-50' : 'z-10'}
                 ${isSelected
                     ? 'border-blue-500 ring-2 ring-blue-500/30 shadow-2xl shadow-blue-500/20 bg-white'
-                    : 'border-white/40 bg-white/80 hover:border-blue-300/50 hover:shadow-xl hover:shadow-blue-500/10 backdrop-blur-xl'
+                    : 'border-white/60 bg-white/90 hover:border-blue-300/50 hover:shadow-2xl hover:shadow-blue-500/10 backdrop-blur-xl'
                 }
             `}
         >
             {/* Background Gradient Accent */}
-            <div className={`absolute top-0 left-0 w-full h-1 rounded-t-2xl transition-colors duration-300 ${isExecuting ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
+            <div className={`absolute top-0 left-0 w-full h-1.5 rounded-t-3xl transition-colors duration-300 ${isExecuting ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
                 isOnline ? 'bg-gradient-to-r from-blue-400 to-indigo-500' :
                     'bg-gradient-to-r from-gray-300 to-gray-400'
                 }`} />
 
-            <div className="p-5 space-y-4">
+            <div className="p-6 space-y-5">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
@@ -236,19 +237,18 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                     </div>
                 </div>
 
-                {/* Status & Last Seen */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100 flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100 flex items-center gap-3">
+                        <Clock className="w-4 h-4 text-gray-400" />
                         <div className="flex flex-col">
                             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Last Seen</span>
-                            <span className="text-xs font-medium text-gray-700">
+                            <span className="text-xs font-semibold text-gray-700">
                                 {device.lastSeen ? dayjs(device.lastSeen).fromNow() : 'Never'}
                             </span>
                         </div>
                     </div>
 
-                    <div className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 ${isExecuting ? 'bg-green-50/80 border-green-100' :
+                    <div className={`p-3 rounded-2xl border flex items-center justify-center gap-2 ${isExecuting ? 'bg-green-50/80 border-green-100' :
                         isOnline ? 'bg-blue-50/80 border-blue-100' :
                             'bg-gray-50/80 border-gray-100'
                         }`}>
@@ -307,10 +307,10 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className={`
-                                    w-full py-3 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all
+                                    w-full py-3.5 rounded-2xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition-all
                                     ${isOffline
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/30 hover:shadow-blue-500/40'
+                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/30 hover:shadow-blue-500/50'
                                     }
                                 `}
                                 onClick={handleStart}

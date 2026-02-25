@@ -12,22 +12,6 @@ import { useDevicesWebSocket } from '@/hooks/useDevicesWebSocket';
 import { Map as MapIcon, LogOut, Route as RouteIcon, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Dynamic imports to avoid SSR issues
-const LiveDeviceMap = dynamic(
-  () => import('@/components/live/LiveDeviceMap').then((mod) => ({ default: mod.LiveDeviceMap })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-full flex items-center justify-center bg-gray-50/50 backdrop-blur-sm rounded-2xl">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mx-auto mb-3"></div>
-          <p className="text-gray-500 font-medium text-sm">Loading Live Map...</p>
-        </div>
-      </div>
-    )
-  }
-);
-
 const DeviceList = dynamic(
   () => import('@/components/dashboard/DeviceList').then((mod) => ({ default: mod.DeviceList })),
   { ssr: false }
@@ -56,7 +40,6 @@ export default function DashboardPage() {
   const { setDevices, setLoading: setDevicesLoading } = useDevicesStore();
   const { setRoutes, setLoading: setRoutesLoading } = useRoutesStore();
 
-  const [showMap, setShowMap] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
 
   // Connect to WebSocket for live updates on dashboard
@@ -199,44 +182,13 @@ export default function DashboardPage() {
             {/* Control Panel */}
             <ControlPanel />
 
-            {/* Map & List Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              {/* Map Section - Takes up 2/3 on large screens */}
-              <motion.div
-                layout
-                transition={{ type: "spring", bounce: 0.2 }}
-                className={`xl:col-span-3 rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/10 border border-white/50 relative bg-white transition-all duration-500 ease-in-out ${showMap ? 'h-[700px]' : 'h-20'}`}
-              >
-                {/* Map Toggle Button Absolute */}
-                <div className="absolute top-4 right-4 z-[500]">
-                  <button
-                    onClick={() => setShowMap(!showMap)}
-                    className="glass-card px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-white transition-colors flex items-center gap-2"
-                  >
-                    <MapIcon className="w-4 h-4" />
-                    {showMap ? 'Minimize Map' : 'Maximize Map'}
-                  </button>
-                </div>
-
-                {showMap ? (
-                  <LiveDeviceMap className="w-full h-full" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-50 gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-gray-500 font-medium text-sm">Map is running in background...</span>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Device List - Takes full width below */}
-              <div className="xl:col-span-3">
-                <div className="flex items-center gap-3 mb-6 px-2">
-                  <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
-                  <h2 className="text-xl font-bold text-gray-900">Active Fleet</h2>
-                </div>
-
-                <DeviceList />
+            <div className="w-full">
+              <div className="flex items-center gap-3 mb-6 px-2">
+                <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
+                <h2 className="text-2xl font-bold text-gray-900">Active Fleet</h2>
               </div>
+
+              <DeviceList />
             </div>
           </motion.div>
         </main>
