@@ -8,7 +8,7 @@ import { useDevicesWebSocket } from '@/hooks/useDevicesWebSocket';
 import dynamic from 'next/dynamic';
 
 const LiveDeviceMap = dynamic(
-    () => import('@/components/live/LiveDeviceMap').then((mod) => mod.LiveDeviceMap),
+    () => import('@/components/legacy/live/LiveDeviceMap').then((mod) => mod.LiveDeviceMap),
     { ssr: false }
 );
 import { devicesService } from '@/services/devices.service';
