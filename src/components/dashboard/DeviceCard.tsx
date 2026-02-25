@@ -51,7 +51,13 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
     const [speed, setSpeed] = useState<number>(30); // km/h
     const [isHovered, setIsHovered] = useState(false);
-    const [streamInfo, setStreamInfo] = useState<{ speedApplied?: number; engineMode?: string; status?: string } | null>(null);
+    const [streamInfo, setStreamInfo] = useState<{
+        speedApplied?: number;
+        engineMode?: string;
+        status?: string;
+        state?: string;
+        dwellRemainingSeconds?: number
+    } | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
 
     const routeOptions = React.useMemo(() => safeRoutes.map(r => ({
@@ -69,7 +75,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                         setStreamInfo({
                             speedApplied: res.speedApplied,
                             engineMode: res.engineMode,
-                            status: res.status
+                            status: res.status,
+                            state: res.state,
+                            dwellRemainingSeconds: res.dwellRemainingSeconds,
                         });
                     }
                 })
@@ -114,7 +122,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                 setStreamInfo({
                     speedApplied: result.speedApplied,
                     engineMode: result.engineMode,
-                    status: result.status
+                    status: result.status,
+                    state: result.state,
+                    dwellRemainingSeconds: result.dwellRemainingSeconds,
                 });
             } else if (action === 'stop') {
                 setStreamInfo(null);
@@ -140,6 +150,10 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
     const isOnline = device.status === 'ONLINE';
     const isOffline = device.status === 'OFFLINE';
+
+    // UI calculation for stream mode logic
+    const isStreamPaused = streamInfo?.status === 'paused' || streamInfo?.state === 'PAUSED';
+    const isStreamWaiting = streamInfo?.state === 'WAIT';
 
     return (
         <motion.div
@@ -343,15 +357,25 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                         </div>
                                     )}
                                     {streamInfo.engineMode && (
-                                        <div className="text-xs font-medium text-gray-500 mt-1 uppercase">
-                                            Engine: {streamInfo.engineMode}
+                                        <div className="text-xs font-medium text-gray-500 mt-1 uppercase flex justify-between items-center">
+                                            <span>Engine: {streamInfo.engineMode}</span>
+                                            {isStreamPaused && (
+                                                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                                                    PAUSED
+                                                </span>
+                                            )}
+                                            {isStreamWaiting && !isStreamPaused && (
+                                                <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                                                    WAITING: {streamInfo.dwellRemainingSeconds ?? '--'}s
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             )}
 
                             <div className="grid grid-cols-2 gap-3">
-                                {streamInfo?.status !== 'paused' ? (
+                                {!isStreamPaused ? (
                                     <motion.button
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}

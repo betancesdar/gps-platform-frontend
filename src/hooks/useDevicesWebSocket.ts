@@ -100,24 +100,23 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
         };
 
         const handleMessage = (payload: any) => {
-            // Check event type - assuming standard JSON structure { event: 'NAME', data: ... }
-            // If backend sends raw messages, adjust accordingly. 
-            // Based on previous socket.io code, we expect 'MOCK_LOCATION', 'DEVICE_ONLINE', etc.
-
             const { event, data } = payload;
 
             if (event === 'MOCK_LOCATION') {
                 const message = data as WsMockLocationMessage['data'];
-                const deviceId = message.deviceId;
+                const meta = payload.meta;
+                const deviceId = message.deviceId || data.deviceId;
                 if (!deviceId) return;
 
                 updateLocation(deviceId, {
                     lat: message.latitude,
                     lng: message.longitude,
                     bearing: message.bearing,
-                    speed: message.speed * 3.6, // Convert m/s to km/h once here
+                    // The backend already sends speed in m/s. UI needs km/h.
+                    speed: message.speed * 3.6,
                     accuracy: message.accuracy,
                     state: message.state,
+                    dwellRemainingSeconds: meta?.dwellRemainingSeconds
                 });
             } else if (event === 'DEVICE_ONLINE' || event === 'DEVICE_CONNECTED') {
                 console.log('✅ Device Online:', data);
@@ -134,6 +133,8 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 }
             }
         };
+
+
 
         connectWebSocket();
 

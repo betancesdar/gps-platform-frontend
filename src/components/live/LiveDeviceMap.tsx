@@ -78,7 +78,7 @@ const DeviceMarker = memo(({
 }) => {
     const stale = isLocationStale(location);
     const icon = useMemo(
-        () => createDeviceIcon(location.bearing, stale, location.state, device?.platform?.toLowerCase().includes('web') ? 'web' : 'android'),
+        () => createDeviceIcon(location.bearing, stale, location.state as 'MOVE' | 'WAIT' | undefined, device?.platform?.toLowerCase().includes('web') ? 'web' : 'android'),
         [location.bearing, stale, location.state, device?.platform]
     );
 

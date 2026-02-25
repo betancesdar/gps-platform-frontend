@@ -16,9 +16,12 @@ export interface StreamStatus {
     deviceId: string;
     routeId: string;
     status: 'running' | 'paused' | 'stopped';
+    state?: 'MOVE' | 'WAIT' | 'PAUSED';
     speed: number;
     speedApplied?: number;
     engineMode?: 'distance' | 'index';
+    dwellTicksRemaining?: number;
+    dwellRemainingSeconds?: number;
     loop: boolean;
     currentIndex?: number;
     totalPoints?: number;

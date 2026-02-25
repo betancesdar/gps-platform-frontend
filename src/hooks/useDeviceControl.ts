@@ -42,12 +42,22 @@ export const useDeviceControl = () => {
             // Optimistic UI update
             updateDeviceStatus(deviceId, 'EXECUTING');
             const result = await streamService.start(deviceId, routeId, options);
+            if (result && result.status === 'running') {
+                updateDeviceStatus(deviceId, 'EXECUTING');
+            }
             return result;
         } catch (err: any) {
             // Revert optimistic update on failure
             updateDeviceStatus(deviceId, 'ONLINE');
             const message = err.response?.data?.message || err.message || 'Error starting stream';
             setError(message);
+
+            // Fallback status check
+            streamService.getStatus(deviceId).then(res => {
+                if (!res || res.status === 'stopped') updateDeviceStatus(deviceId, 'ONLINE');
+                else if (res.status === 'running' || res.status === 'paused') updateDeviceStatus(deviceId, 'EXECUTING');
+            }).catch(() => { });
+
             throw err;
         } finally {
             setPending(deviceId, false);
@@ -62,10 +72,18 @@ export const useDeviceControl = () => {
         setError(null);
         try {
             const result = await streamService.pause(deviceId);
+            if (result && result.status === 'paused') {
+                updateDeviceStatus(deviceId, 'EXECUTING');
+            }
             return result; // Backend response acts as truth
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error pausing stream';
             setError(message);
+
+            streamService.getStatus(deviceId).then(res => {
+                if (!res || res.status === 'stopped') updateDeviceStatus(deviceId, 'ONLINE');
+            }).catch(() => { });
+
             throw err;
         } finally {
             setPending(deviceId, false);
@@ -80,10 +98,18 @@ export const useDeviceControl = () => {
         setError(null);
         try {
             const result = await streamService.resume(deviceId);
+            if (result && result.status === 'running') {
+                updateDeviceStatus(deviceId, 'EXECUTING');
+            }
             return result;
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error resuming stream';
             setError(message);
+
+            streamService.getStatus(deviceId).then(res => {
+                if (!res || res.status === 'stopped') updateDeviceStatus(deviceId, 'ONLINE');
+            }).catch(() => { });
+
             throw err;
         } finally {
             setPending(deviceId, false);

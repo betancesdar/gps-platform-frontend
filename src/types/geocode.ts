@@ -55,6 +55,7 @@ export interface DeviceLocationState {
     bearing: number;
     speed: number;
     accuracy: number;
-    state?: 'MOVE' | 'WAIT';
+    state?: 'MOVE' | 'WAIT' | 'PAUSED';
+    dwellRemainingSeconds?: number;
     updatedAt: number; // timestamp
 }
