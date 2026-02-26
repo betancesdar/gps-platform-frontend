@@ -30,18 +30,23 @@ dayjs.extend(relativeTime);
 dayjs.locale('es');
 
 interface DeviceCardProps {
-    device: Device;
+    deviceId: string;
     onSelect?: (deviceId: string) => void;
     isSelected?: boolean;
 }
 
 const DeviceCardComponent: React.FC<DeviceCardProps> = ({
-    device,
+    deviceId,
     onSelect,
     isSelected = false,
 }) => {
+    const device = useDevicesStore(state => state.devicesById[deviceId]);
     const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading, isDevicePending } = useDeviceControl();
-    const isPending = isDevicePending(device.id);
+
+    // Safety check if device was deleted but list hasn't updated
+    if (!device) return null;
+
+    const isPending = isDevicePending(deviceId);
 
     const routes = useRoutesStore((state) => state.routes);
     const safeRoutes = Array.isArray(routes) ? routes : [];
@@ -164,7 +169,8 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
-            onClick={() => onSelect?.(device.id)}
+            onClick={() => onSelect?.(deviceId)}
+            id={`device-card-${deviceId}`}
             className={`
                 relative rounded-3xl border transition-all duration-300 cursor-pointer
                 ${isHovered || isSelected ? 'z-50' : 'z-10'}
@@ -423,10 +429,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
 export const DeviceCard = React.memo(DeviceCardComponent, (prevProps, nextProps) => {
     return (
-        prevProps.device.id === nextProps.device.id &&
-        prevProps.device.status === nextProps.device.status &&
-        prevProps.device.lastSeen === nextProps.device.lastSeen &&
-        prevProps.device.assignedRoute?.id === nextProps.device.assignedRoute?.id &&
+        prevProps.deviceId === nextProps.deviceId &&
         prevProps.isSelected === nextProps.isSelected
     );
 });

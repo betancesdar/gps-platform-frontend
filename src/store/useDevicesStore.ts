@@ -3,6 +3,7 @@ import { Device, devicesService } from '@/services/devices.service';
 
 interface DevicesState {
     devices: Device[];
+    devicesById: Record<string, Device>;
     selectedDeviceId: string | null;
     isLoading: boolean;
     error: string | null;
@@ -33,40 +34,61 @@ interface DevicesState {
 
 export const useDevicesStore = create<DevicesState>((set, get) => ({
     devices: [],
+    devicesById: {},
     selectedDeviceId: null,
     isLoading: false,
     error: null,
     showOfflineHistory: false, // Default: Hide offline history (filter active only)
     selectedRouteIds: {},
 
-    setDevices: (devices) => set({ devices }),
+    setDevices: (devices) => {
+        const devicesById = devices.reduce((acc, dev) => {
+            acc[dev.id] = dev;
+            return acc;
+        }, {} as Record<string, Device>);
+        set({ devices, devicesById });
+    },
 
     addDevice: (device) =>
         set((state) => ({
             devices: [...state.devices, device],
+            devicesById: { ...state.devicesById, [device.id]: device }
         })),
 
     updateDevice: (deviceId, updates) =>
-        set((state) => ({
-            devices: state.devices.map((device) =>
-                device.id === deviceId ? { ...device, ...updates } : device
-            ),
-        })),
+        set((state) => {
+            const current = state.devicesById[deviceId];
+            if (!current) return state;
+            return {
+                devicesById: {
+                    ...state.devicesById,
+                    [deviceId]: { ...current, ...updates }
+                }
+            };
+        }),
 
     removeDevice: (deviceId) =>
-        set((state) => ({
-            devices: state.devices.filter((device) => device.id !== deviceId),
-            selectedDeviceId: state.selectedDeviceId === deviceId ? null : state.selectedDeviceId,
-        })),
+        set((state) => {
+            const newDevicesById = { ...state.devicesById };
+            delete newDevicesById[deviceId];
+            return {
+                devices: state.devices.filter((device) => device.id !== deviceId),
+                devicesById: newDevicesById,
+                selectedDeviceId: state.selectedDeviceId === deviceId ? null : state.selectedDeviceId,
+            };
+        }),
 
     updateDeviceStatus: (deviceId, status) =>
-        set((state) => ({
-            devices: state.devices.map((device) =>
-                device.id === deviceId
-                    ? { ...device, status, lastSeen: new Date() }
-                    : device
-            ),
-        })),
+        set((state) => {
+            const current = state.devicesById[deviceId];
+            if (!current) return state;
+            return {
+                devicesById: {
+                    ...state.devicesById,
+                    [deviceId]: { ...current, status, lastSeen: new Date() }
+                }
+            };
+        }),
 
     setSelectedDevice: (deviceId) => set({ selectedDeviceId: deviceId }),
 
@@ -74,7 +96,7 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
 
     setError: (error) => set({ error }),
 
-    clearDevices: () => set({ devices: [], selectedDeviceId: null }),
+    clearDevices: () => set({ devices: [], devicesById: {}, selectedDeviceId: null }),
 
     // New Actions Implementation
     toggleShowOfflineHistory: () => {

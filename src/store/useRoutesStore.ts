@@ -84,27 +84,24 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
 
         get().setInFlightDelete(routeId, true);
         try {
-            // Optimistic Store update
-            const previousRoutes = get().routes;
-            const previousSelected = get().selectedRouteId;
-            set((state) => ({
-                routes: state.routes.filter(r => (r.id || (r as any).routeId) !== routeId),
-                selectedRouteId: state.selectedRouteId === routeId ? null : state.selectedRouteId
-            }));
-
             // Backend execution
             const { routesService } = await import('@/services/routes.service');
             await routesService.deleteRoute(routeId);
 
+            // If OK -> Remove local immediately
+            set((state) => ({
+                routes: state.routes.filter(r => (r.id || (r as any).routeId) !== routeId)
+            }));
+
             // Reconciliation
-            get().fetchRoutes();
+            get().fetchRoutes().catch(() => { });
 
             return { success: true };
         } catch (error: any) {
-            // Revert changes on fail and reconcile
-            get().fetchRoutes();
+            console.error('Failed to delete route:', error);
+            const status = error.response?.status ? `[${error.response.status}] ` : '';
             const msg = error.response?.data?.message || error.message || 'Failed to delete route';
-            return { success: false, message: msg };
+            return { success: false, message: `${status}${msg}` };
         } finally {
             get().setInFlightDelete(routeId, false);
         }

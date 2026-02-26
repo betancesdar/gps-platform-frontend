@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { DeviceCard } from './DeviceCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,24 @@ export const DeviceList: React.FC = () => {
     const devices = useDevicesStore((state) => state.devices);
     const selectedDeviceId = useDevicesStore((state) => state.selectedDeviceId);
     const setSelectedDevice = useDevicesStore((state) => state.setSelectedDevice);
+
+    const userInitiatedSelectionRef = useRef(false);
+
+    const handleSelectDevice = (id: string) => {
+        userInitiatedSelectionRef.current = true;
+        setSelectedDevice(id);
+    };
+
+    useEffect(() => {
+        if (!userInitiatedSelectionRef.current) return;
+        if (selectedDeviceId) {
+            const el = document.getElementById(`device-card-${selectedDeviceId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            userInitiatedSelectionRef.current = false;
+        }
+    }, [selectedDeviceId]);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'ONLINE' | 'OFFLINE'>('all');
@@ -108,8 +126,8 @@ export const DeviceList: React.FC = () => {
                         filteredDevices.map((device) => (
                             <DeviceCard
                                 key={device.id}
-                                device={device}
-                                onSelect={setSelectedDevice}
+                                deviceId={device.id}
+                                onSelect={handleSelectDevice}
                                 isSelected={selectedDeviceId === device.id}
                             />
                         ))
