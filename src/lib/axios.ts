@@ -16,8 +16,15 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('token');
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`;
+        if (token) {
+            // Ensure headers exist
+            config.headers = config.headers || {};
+            // For older axios versions
+            config.headers['Authorization'] = `Bearer ${token}`;
+            // For newer axios versions with AxiosHeaders
+            if (config.headers.set) {
+                config.headers.set('Authorization', `Bearer ${token}`);
+            }
         }
         return config;
     },
