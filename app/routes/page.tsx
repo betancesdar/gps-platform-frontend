@@ -21,7 +21,7 @@ const RoutePreviewPlayer = dynamic(
 export default function RoutesPage() {
     const router = useRouter();
     const { isAuthenticated, isLoading: authLoading, initAuth } = useAuthStore();
-    const { routes, setRoutes, addRoute, removeRoute, setLoading } = useRoutesStore();
+    const { routes, setRoutes, addRoute, removeRoute, setLoading, inFlightDeleteByRouteId } = useRoutesStore();
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -102,12 +102,9 @@ export default function RoutesPage() {
     };
 
     const handleDeleteRoute = async (routeId: string) => {
-        try {
-            await routesService.deleteRoute(routeId);
-            removeRoute(routeId);
-        } catch (error) {
-            console.error('Error deleting route:', error);
-            alert('Failed to delete route');
+        const result = await useRoutesStore.getState().deleteRoute(routeId);
+        if (!result.success) {
+            alert(result.message || 'Failed to delete route');
         }
     };
 

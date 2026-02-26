@@ -23,6 +23,7 @@ export const RouteList: React.FC<RouteListProps> = ({
     const routes = useRoutesStore((state) => state.routes);
     const selectedRouteId = useRoutesStore((state) => state.selectedRouteId);
     const setSelectedRoute = useRoutesStore((state) => state.setSelectedRoute);
+    const inFlightDeleteByRouteId = useRoutesStore((state) => state.inFlightDeleteByRouteId);
 
     const [search, setSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -186,15 +187,20 @@ export const RouteList: React.FC<RouteListProps> = ({
                                         <Button
                                             variant="danger"
                                             size="sm"
+                                            disabled={inFlightDeleteByRouteId[routeId]}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (confirm(`¿Eliminar ruta "${route.name}"?`)) {
                                                     onDeleteRoute?.(routeId);
                                                 }
                                             }}
-                                            className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
                                         >
-                                            🗑️ Eliminar
+                                            {inFlightDeleteByRouteId[routeId] ? (
+                                                <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                                            ) : (
+                                                '🗑️ Eliminar'
+                                            )}
                                         </Button>
                                     </div>
                                 </div>

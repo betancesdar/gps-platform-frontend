@@ -30,7 +30,10 @@ export const useDeviceControl = () => {
     const isDevicePending = (deviceId: string) => !!pendingActions[deviceId];
 
     const startDevice = async (deviceId: string, routeId: string, speed?: number) => {
+        const currentStatus = useDevicesStore.getState().devices.find(d => d.id === deviceId)?.status;
+        if (currentStatus === 'EXECUTING') return null;
         if (isDevicePending(deviceId)) return null;
+
         setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
@@ -39,16 +42,18 @@ export const useDeviceControl = () => {
                 speed: speed || 30, // Default to 30 km/h
                 loop: false,
             };
-            // Optimistic UI update
-            updateDeviceStatus(deviceId, 'EXECUTING');
             const result = await streamService.start(deviceId, routeId, options);
-            if (result && result.status === 'running') {
+
+            // Single source of truth sync
+            const truthStatus = await streamService.getStatus(deviceId);
+            if (truthStatus && truthStatus.status !== 'stopped') {
                 updateDeviceStatus(deviceId, 'EXECUTING');
+            } else {
+                updateDeviceStatus(deviceId, 'ONLINE');
             }
+
             return result;
         } catch (err: any) {
-            // Revert optimistic update on failure
-            updateDeviceStatus(deviceId, 'ONLINE');
             const message = err.response?.data?.message || err.message || 'Error starting stream';
             setError(message);
 
@@ -72,9 +77,15 @@ export const useDeviceControl = () => {
         setError(null);
         try {
             const result = await streamService.pause(deviceId);
-            if (result && result.status === 'paused') {
+
+            // Single source of truth sync
+            const truthStatus = await streamService.getStatus(deviceId);
+            if (truthStatus && truthStatus.status !== 'stopped') {
                 updateDeviceStatus(deviceId, 'EXECUTING');
+            } else {
+                updateDeviceStatus(deviceId, 'ONLINE');
             }
+
             return result; // Backend response acts as truth
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error pausing stream';
@@ -82,6 +93,7 @@ export const useDeviceControl = () => {
 
             streamService.getStatus(deviceId).then(res => {
                 if (!res || res.status === 'stopped') updateDeviceStatus(deviceId, 'ONLINE');
+                else updateDeviceStatus(deviceId, 'EXECUTING');
             }).catch(() => { });
 
             throw err;
@@ -98,9 +110,15 @@ export const useDeviceControl = () => {
         setError(null);
         try {
             const result = await streamService.resume(deviceId);
-            if (result && result.status === 'running') {
+
+            // Single source of truth sync
+            const truthStatus = await streamService.getStatus(deviceId);
+            if (truthStatus && truthStatus.status !== 'stopped') {
                 updateDeviceStatus(deviceId, 'EXECUTING');
+            } else {
+                updateDeviceStatus(deviceId, 'ONLINE');
             }
+
             return result;
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error resuming stream';
@@ -108,6 +126,7 @@ export const useDeviceControl = () => {
 
             streamService.getStatus(deviceId).then(res => {
                 if (!res || res.status === 'stopped') updateDeviceStatus(deviceId, 'ONLINE');
+                else updateDeviceStatus(deviceId, 'EXECUTING');
             }).catch(() => { });
 
             throw err;
@@ -118,13 +137,20 @@ export const useDeviceControl = () => {
     };
 
     const stopDevice = async (deviceId: string) => {
+        const currentStatus = useDevicesStore.getState().devices.find(d => d.id === deviceId)?.status;
+        if (currentStatus !== 'EXECUTING') return;
+
         if (isDevicePending(deviceId)) return;
         setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
         try {
             const result = await streamService.stop(deviceId);
+
+            // Single source of truth sync
+            await streamService.getStatus(deviceId); // Poll to ensure status is digested
             updateDeviceStatus(deviceId, 'ONLINE');
+
             return result;
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error stopping stream';

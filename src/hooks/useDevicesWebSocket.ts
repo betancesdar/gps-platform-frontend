@@ -46,6 +46,13 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
             socket.onopen = () => {
                 console.log('✅ Connected to devices WebSocket');
                 reconnectAttempts.current = 0;
+
+                // On initial connect/reconnect, silently fetch full state
+                import('@/services/devices.service').then(({ devicesService }) => {
+                    devicesService.getDevices().then(devices => {
+                        useDevicesStore.getState().setDevices(devices);
+                    }).catch(err => console.error("WS initial sync failed", err));
+                });
             };
 
             socket.onmessage = (event) => {
@@ -121,9 +128,16 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
             } else if (event === 'DEVICE_ONLINE' || event === 'DEVICE_CONNECTED') {
                 console.log('✅ Device Online:', data);
                 useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'ONLINE');
+                useDevicesStore.getState().updateDevice(data.deviceId, {
+                    status: 'ONLINE',
+                    lastSeen: new Date()
+                });
             } else if (event === 'DEVICE_OFFLINE' || event === 'DEVICE_DISCONNECTED') {
                 console.log('❌ Device Offline:', data);
                 useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'OFFLINE');
+                useDevicesStore.getState().updateDevice(data.deviceId, {
+                    status: 'OFFLINE'
+                });
             } else if (event === 'DEVICE_STATUS_UPDATE') {
                 console.log('🔄 Device Status Update:', data);
                 useDevicesStore.getState().updateDeviceStatus(data.deviceId, data.status);
