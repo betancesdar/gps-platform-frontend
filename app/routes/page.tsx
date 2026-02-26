@@ -7,7 +7,6 @@ import { useRoutesStore } from '@/store/useRoutesStore';
 import { routesService } from '@/services/routes.service';
 import { RouteList } from '@/components/routes/RouteList';
 import { RouteForm } from '@/components/routes/RouteForm';
-import { RouteAssignment } from '@/components/routes/RouteAssignment';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Route, CreateRouteRequest } from '@/types';
@@ -195,33 +194,25 @@ export default function RoutesPage() {
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Routes List */}
-                    <div className="lg:col-span-2 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-gray-900">
-                                Available Routes ({routes.length})
-                            </h2>
-                            <Button
-                                variant="primary"
-                                onClick={() => setIsCreateModalOpen(true)}
-                            >
-                                + Create Route
-                            </Button>
-                        </div>
-
-                        <RouteList
-                            onEditRoute={openEditModal}
-                            onDeleteRoute={handleDeleteRoute}
-                            onPreviewRoute={handlePreviewRoute}
-                        />
+            <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold text-gray-900">
+                            Available Routes ({routes.length})
+                        </h2>
+                        <Button
+                            variant="primary"
+                            onClick={() => setIsCreateModalOpen(true)}
+                        >
+                            + Create Route
+                        </Button>
                     </div>
 
-                    {/* Route Assignment */}
-                    <div className="lg:col-span-1">
-                        <RouteAssignment />
-                    </div>
+                    <RouteList
+                        onEditRoute={openEditModal}
+                        onDeleteRoute={handleDeleteRoute}
+                        onPreviewRoute={handlePreviewRoute}
+                    />
                 </div>
             </main>
 

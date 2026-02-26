@@ -37,19 +37,19 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
 
     updateRoute: (routeId, updates) => set((state) => ({
         routes: state.routes.map((route) =>
-            route.id === routeId ? { ...route, ...updates } : route
+            (route.id || (route as any).routeId) === routeId ? { ...route, ...updates } : route
         ),
     })),
 
     removeRoute: (routeId) => set((state) => ({
-        routes: state.routes.filter((route) => route.id !== routeId),
+        routes: state.routes.filter((route) => (route.id || (route as any).routeId) !== routeId),
         selectedRouteId: state.selectedRouteId === routeId ? null : state.selectedRouteId,
     })),
 
     setSelectedRoute: (routeId) => set({ selectedRouteId: routeId }),
 
     getRouteById: (routeId) => {
-        return get().routes.find((route) => route.id === routeId);
+        return get().routes.find((route) => (route.id || (route as any).routeId) === routeId);
     },
 
     setLoading: (isLoading) => set({ isLoading }),
@@ -88,7 +88,7 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
             const previousRoutes = get().routes;
             const previousSelected = get().selectedRouteId;
             set((state) => ({
-                routes: state.routes.filter(r => r.id !== routeId),
+                routes: state.routes.filter(r => (r.id || (r as any).routeId) !== routeId),
                 selectedRouteId: state.selectedRouteId === routeId ? null : state.selectedRouteId
             }));
 
