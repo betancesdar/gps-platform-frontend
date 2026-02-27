@@ -28,6 +28,7 @@ interface DevicesState {
     // New Actions
     toggleShowOfflineHistory: () => void;
     loadDevices: () => Promise<void>;
+    syncDeviceStatuses: () => Promise<void>;
     deleteDevice: (deviceId: string) => Promise<void>;
     setSelectedRouteId: (deviceId: string, routeId: string) => void;
 }
@@ -81,7 +82,7 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
     updateDeviceStatus: (deviceId, status) =>
         set((state) => {
             const current = state.devicesById[deviceId];
-            if (!current) return state;
+            if (!current || current.status === status) return state;
             return {
                 devicesById: {
                     ...state.devicesById,
@@ -134,6 +135,30 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
             setError(err.message || 'Failed to load devices');
         } finally {
             setLoading(false);
+        }
+    },
+
+    syncDeviceStatuses: async () => {
+        try {
+            const activeWithin = get().showOfflineHistory ? undefined : 600;
+            const devices = await devicesService.getDevices(activeWithin);
+            set((state) => {
+                let changed = false;
+                const newById = { ...state.devicesById };
+
+                devices.forEach(d => {
+                    const current = newById[d.id];
+                    if (current && current.status !== d.status) {
+                        newById[d.id] = { ...current, status: d.status, lastSeen: new Date() };
+                        changed = true;
+                    }
+                });
+
+                if (!changed) return state;
+                return { devicesById: newById };
+            });
+        } catch (err) {
+            console.error('Failed to sync device statuses:', err);
         }
     },
 

@@ -195,9 +195,12 @@ export const LiveDeviceMap: React.FC<LiveDeviceMapProps> = ({ className = '' }) 
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute top-4 left-4 right-4 z-[400] pointer-events-none"
+                className="absolute top-4 left-4 right-4 z-[1000] pointer-events-none"
             >
-                <div className="glass-card p-3 rounded-2xl flex flex-col md:flex-row items-center gap-4 pointer-events-auto max-w-4xl mx-auto backdrop-blur-xl">
+                <div
+                    className="glass-card p-3 rounded-2xl flex flex-col md:flex-row items-center gap-4 pointer-events-auto max-w-4xl mx-auto backdrop-blur-xl"
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
 
                     {/* Title & Count */}
                     <div className="flex items-center gap-3 px-2">

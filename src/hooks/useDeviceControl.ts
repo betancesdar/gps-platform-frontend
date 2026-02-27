@@ -30,7 +30,7 @@ export const useDeviceControl = () => {
     const isDevicePending = (deviceId: string) => !!pendingActions[deviceId];
 
     const startDevice = async (deviceId: string, routeId: string, speed?: number) => {
-        const currentStatus = useDevicesStore.getState().devices.find(d => d.id === deviceId)?.status;
+        const currentStatus = useDevicesStore.getState().devicesById[deviceId]?.status;
         if (currentStatus === 'EXECUTING') return null;
         if (isDevicePending(deviceId)) return null;
 
@@ -42,7 +42,7 @@ export const useDeviceControl = () => {
                 speed: speed || 30, // Default to 30 km/h
                 loop: false,
             };
-            const result = await streamService.start(deviceId, routeId, options);
+            await streamService.start(deviceId, routeId, options);
 
             // Single source of truth sync
             const truthStatus = await streamService.getStatus(deviceId);
@@ -52,7 +52,7 @@ export const useDeviceControl = () => {
                 updateDeviceStatus(deviceId, 'ONLINE');
             }
 
-            return result;
+            return truthStatus;
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error starting stream';
             setError(message);
@@ -76,7 +76,7 @@ export const useDeviceControl = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await streamService.pause(deviceId);
+            await streamService.pause(deviceId);
 
             // Single source of truth sync
             const truthStatus = await streamService.getStatus(deviceId);
@@ -86,7 +86,7 @@ export const useDeviceControl = () => {
                 updateDeviceStatus(deviceId, 'ONLINE');
             }
 
-            return result; // Backend response acts as truth
+            return truthStatus; // Backend response acts as truth
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error pausing stream';
             setError(message);
@@ -109,7 +109,7 @@ export const useDeviceControl = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await streamService.resume(deviceId);
+            await streamService.resume(deviceId);
 
             // Single source of truth sync
             const truthStatus = await streamService.getStatus(deviceId);
@@ -119,7 +119,7 @@ export const useDeviceControl = () => {
                 updateDeviceStatus(deviceId, 'ONLINE');
             }
 
-            return result;
+            return truthStatus;
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error resuming stream';
             setError(message);
@@ -137,7 +137,7 @@ export const useDeviceControl = () => {
     };
 
     const stopDevice = async (deviceId: string) => {
-        const currentStatus = useDevicesStore.getState().devices.find(d => d.id === deviceId)?.status;
+        const currentStatus = useDevicesStore.getState().devicesById[deviceId]?.status;
         if (currentStatus !== 'EXECUTING') return;
 
         if (isDevicePending(deviceId)) return;
@@ -145,13 +145,17 @@ export const useDeviceControl = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await streamService.stop(deviceId);
+            await streamService.stop(deviceId);
 
             // Single source of truth sync
-            await streamService.getStatus(deviceId); // Poll to ensure status is digested
-            updateDeviceStatus(deviceId, 'ONLINE');
+            const truthStatus = await streamService.getStatus(deviceId); // Poll to ensure status is digested
+            if (truthStatus && truthStatus.status !== 'stopped') {
+                updateDeviceStatus(deviceId, 'EXECUTING');
+            } else {
+                updateDeviceStatus(deviceId, 'ONLINE');
+            }
 
-            return result;
+            return truthStatus;
         } catch (err: any) {
             const message = err.response?.data?.message || err.message || 'Error stopping stream';
             setError(message);

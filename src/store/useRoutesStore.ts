@@ -89,9 +89,14 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
             await routesService.deleteRoute(routeId);
 
             // If OK -> Remove local immediately
-            set((state) => ({
-                routes: state.routes.filter(r => (r.id || (r as any).routeId) !== routeId)
-            }));
+            set((state) => {
+                const remainingRoutes = state.routes.filter(r => (r.id || (r as any).routeId) !== routeId);
+                const isSelected = state.selectedRouteId === routeId;
+                return {
+                    routes: remainingRoutes,
+                    selectedRouteId: isSelected ? null : state.selectedRouteId
+                };
+            });
 
             // Reconciliation
             get().fetchRoutes().catch(() => { });

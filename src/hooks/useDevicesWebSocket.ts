@@ -152,8 +152,14 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
 
         connectWebSocket();
 
+        // Background polling for HTTP reconciliation of ONLINE/OFFLINE
+        const fallBackStatusPoller = setInterval(() => {
+            useDevicesStore.getState().syncDeviceStatuses();
+        }, 5000);
+
         // Cleanup
         return () => {
+            clearInterval(fallBackStatusPoller);
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
             }

@@ -7,6 +7,7 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { useDeviceControl } from '@/hooks/useDeviceControl';
 import { useRoutesStore } from '@/store/useRoutesStore';
 import { useDevicesStore } from '@/store/useDevicesStore';
+import { useDevicesLocationStore } from '@/store/useDevicesLocationStore';
 import { VirtualSelect } from '../ui/VirtualSelect';
 import { streamService } from '@/services/stream.service';
 import dayjs from 'dayjs';
@@ -41,6 +42,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     isSelected = false,
 }) => {
     const device = useDevicesStore(state => state.devicesById[deviceId]);
+    const location = useDevicesLocationStore(state => state.locationsByDeviceId[deviceId]);
     const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading, isDevicePending } = useDeviceControl();
 
     // Safety check if device was deleted but list hasn't updated
@@ -157,8 +159,10 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const isOffline = device.status === 'OFFLINE';
 
     // UI calculation for stream mode logic
-    const isStreamPaused = streamInfo?.status === 'paused' || streamInfo?.state === 'PAUSED';
-    const isStreamWaiting = streamInfo?.state === 'WAIT';
+    const activeState = streamInfo?.state || location?.state;
+    const isStreamPaused = streamInfo?.status === 'paused' || activeState === 'PAUSED';
+    const isStreamWaiting = activeState === 'WAIT';
+    const dwellRemaining = streamInfo?.dwellRemainingSeconds ?? location?.dwellRemainingSeconds;
 
     return (
         <motion.div
@@ -371,8 +375,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                                 </span>
                                             )}
                                             {isStreamWaiting && !isStreamPaused && (
-                                                <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
-                                                    WAITING: {streamInfo.dwellRemainingSeconds ?? '--'}s
+                                                <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    WAITING: {dwellRemaining ?? '--'}s
                                                 </span>
                                             )}
                                         </div>
