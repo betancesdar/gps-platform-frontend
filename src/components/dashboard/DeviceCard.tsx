@@ -164,25 +164,22 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const isStreamWaiting = activeState === 'WAIT';
     const dwellRemaining = streamInfo?.dwellRemainingSeconds ?? location?.dwellRemainingSeconds;
 
+    const activeRouteName = safeRoutes.find(r => r.id === selectedRouteId)?.name || 'Ruta Desconocida';
+
     return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            onHoverStart={() => setIsHovered(true)}
-            onHoverEnd={() => setIsHovered(false)}
+        <div
             onClick={() => onSelect?.(deviceId)}
             id={`device-card-${deviceId}`}
             className={`
-                relative rounded-3xl border transition-all duration-300 cursor-pointer
+                relative rounded-3xl border transition-all duration-200 cursor-pointer
                 ${isHovered || isSelected ? 'z-50' : 'z-10'}
                 ${isSelected
-                    ? 'border-blue-500 ring-2 ring-blue-500/30 shadow-2xl shadow-blue-500/20 bg-white'
-                    : 'border-white/60 bg-white/90 hover:border-blue-300/50 hover:shadow-2xl hover:shadow-blue-500/10 backdrop-blur-xl'
+                    ? 'border-blue-500 ring-2 ring-blue-500/30 shadow-lg bg-white'
+                    : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
                 }
             `}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         >
             {/* Background Gradient Accent */}
             <div className={`absolute top-0 left-0 w-full h-1.5 rounded-t-3xl transition-colors duration-300 ${isExecuting ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
@@ -235,15 +232,13 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
                     <div className="flex items-center gap-2">
                         {/* Delete Button */}
-                        <motion.button
-                            whileHover={{ scale: 1.1, backgroundColor: '#fee2e2', color: '#ef4444' }}
-                            whileTap={{ scale: 0.9 }}
+                        <button
                             onClick={handleDelete}
-                            className="p-2 text-gray-400 rounded-xl transition-colors"
+                            className="p-2.5 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors"
                             title="Delete Device"
                         >
                             <Trash2 className="w-4 h-4" />
-                        </motion.button>
+                        </button>
                     </div>
                 </div>
 
@@ -267,168 +262,154 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                 </div>
 
                 {/* Controls Area */}
-                <AnimatePresence mode='wait'>
-                    {!isExecuting ? (
-                        <motion.div
-                            key="setup"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="space-y-4 pt-2 border-t border-gray-100"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    <Navigation className="w-3 h-3" /> Select Route
-                                </label>
-                                <div className="relative group w-full">
-                                    <VirtualSelect
-                                        options={routeOptions}
-                                        value={selectedRouteId}
-                                        onChange={setSelectedRouteId}
-                                        placeholder={safeRoutes.length === 0 ? '-- No routes --' : 'Choose a route...'}
-                                        disabled={safeRoutes.length === 0}
-                                        className="w-full"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        <Clock className="w-3 h-3" /> Speed
-                                    </label>
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
-                                        {speed} km/h
-                                    </span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="5"
-                                    max="120"
-                                    step="5"
-                                    value={speed}
-                                    onChange={(e) => setSpeed(parseInt(e.target.value))}
-                                    className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500"
+                {!isExecuting ? (
+                    <div
+                        className="space-y-4 pt-4 border-t border-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                <Navigation className="w-3 h-3" /> Select Route
+                            </label>
+                            <div className="relative group w-full">
+                                <VirtualSelect
+                                    options={routeOptions}
+                                    value={selectedRouteId}
+                                    onChange={setSelectedRouteId}
+                                    placeholder={safeRoutes.length === 0 ? '-- No routes --' : 'Choose a route...'}
+                                    disabled={safeRoutes.length === 0}
+                                    className="w-full"
                                 />
                             </div>
+                        </div>
 
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className={`
-                                    w-full py-3.5 rounded-2xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition-all
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    <Clock className="w-3 h-3" /> Speed
+                                </label>
+                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
+                                    {speed} km/h
+                                </span>
+                            </div>
+                            <input
+                                type="range"
+                                min="5"
+                                max="120"
+                                step="5"
+                                value={speed}
+                                onChange={(e) => setSpeed(parseInt(e.target.value))}
+                                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500"
+                            />
+                        </div>
+
+                        <button
+                            className={`
+                                    w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors
                                     ${isOffline
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/30 hover:shadow-blue-500/50'
-                                    }
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                                }
                                 `}
-                                onClick={handleStart}
-                                disabled={isPending || !selectedRouteId || isOffline}
-                            >
-                                {isPending ? (
-                                    <span className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded-full border-2 border-green-200 border-t-white animate-spin" />
-                                        Starting...
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center gap-2">
-                                        <Play className="w-4 h-4 fill-current" />
-                                        {isOffline ? 'Device Offline' : 'Start Simulation'}
-                                    </span>
-                                )}
-                            </motion.button>
-
-                            {actionError && (
-                                <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 mt-2">
-                                    {actionError}
-                                </div>
-                            )}
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="controls"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="flex flex-col gap-3 pt-2 border-t border-gray-100"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={handleStart}
+                            disabled={isPending || !selectedRouteId || isOffline}
                         >
-                            {streamInfo && (
-                                <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl space-y-1">
-                                    <div className="text-xs font-semibold text-blue-800 flex justify-between">
-                                        <span>Speed Configured:</span>
-                                        <span>{speed} km/h</span>
-                                    </div>
-                                    {streamInfo.speedApplied !== undefined && (
-                                        <div className="text-xs font-semibold text-emerald-700 flex justify-between">
-                                            <span>Speed Applied:</span>
-                                            <span>{streamInfo.speedApplied} km/h</span>
-                                        </div>
-                                    )}
-                                    {streamInfo.engineMode && (
-                                        <div className="text-xs font-medium text-gray-500 mt-1 uppercase flex justify-between items-center">
-                                            <span>Engine: {streamInfo.engineMode}</span>
-                                            {isStreamPaused && (
-                                                <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
-                                                    PAUSED
-                                                </span>
-                                            )}
-                                            {isStreamWaiting && !isStreamPaused && (
-                                                <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    WAITING: {dwellRemaining ?? '--'}s
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                            {isPending ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-4 h-4 rounded-full border-2 border-green-200 border-t-white animate-spin" />
+                                    Starting...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <Play className="w-4 h-4 fill-current" />
+                                    {isOffline ? 'Device Offline' : 'Start Simulation'}
+                                </span>
                             )}
+                        </button>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                {!isStreamPaused ? (
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
-                                        onClick={(e) => handleControl(e, 'pause')}
-                                        disabled={isPending}
-                                    >
-                                        <Pause className="w-4 h-4 fill-current" /> Pause
-                                    </motion.button>
-                                ) : (
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
-                                        onClick={(e) => handleControl(e, 'resume')}
-                                        disabled={isPending}
-                                    >
-                                        <Play className="w-4 h-4 fill-current" /> Resume
-                                    </motion.button>
+                        {actionError && (
+                            <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 mt-2">
+                                {actionError}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div
+                        className="flex flex-col gap-3 pt-4 border-t border-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {streamInfo && (
+                            <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-xl space-y-1.5 shadow-sm">
+                                <div className="text-xs font-bold flex justify-between items-center text-gray-800 bg-white p-2 rounded-lg border border-blue-100/50">
+                                    <span className="flex items-center gap-1 text-blue-600 uppercase tracking-widest text-[10px]"><Navigation className="w-3 h-3" /> Ruta</span>
+                                    <span className="truncate max-w-[150px]" title={activeRouteName}>{activeRouteName}</span>
+                                </div>
+                                <div className="text-xs font-semibold text-blue-800 flex justify-between px-1 pt-1">
+                                    <span>Speed Configured:</span>
+                                    <span>{speed} km/h</span>
+                                </div>
+                                {streamInfo.speedApplied !== undefined && (
+                                    <div className="text-xs font-semibold text-emerald-700 flex justify-between">
+                                        <span>Speed Applied:</span>
+                                        <span>{streamInfo.speedApplied} km/h</span>
+                                    </div>
                                 )}
+                                {streamInfo.engineMode && (
+                                    <div className="text-xs font-medium text-gray-500 mt-1 uppercase flex justify-between items-center">
+                                        <span>Engine: {streamInfo.engineMode}</span>
+                                        {isStreamPaused && (
+                                            <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                                                PAUSED
+                                            </span>
+                                        )}
+                                        {isStreamWaiting && !isStreamPaused && (
+                                            <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                WAITING: {dwellRemaining ?? '--'}s
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                                <motion.button
-                                    whileHover={{ scale: 1.02, backgroundColor: '#fee2e2' }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100/80 transition-colors shadow-sm"
-                                    onClick={(e) => handleControl(e, 'stop')}
+                        <div className="grid grid-cols-2 gap-3 pt-1">
+                            {!isStreamPaused ? (
+                                <button
+                                    className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
+                                    onClick={(e) => handleControl(e, 'pause')}
                                     disabled={isPending}
                                 >
-                                    <Square className="w-4 h-4 fill-current" /> Stop Simulation
-                                </motion.button>
-                            </div>
-
-                            {actionError && (
-                                <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 mt-2">
-                                    {actionError}
-                                </div>
+                                    <Pause className="w-4 h-4 fill-current" /> Pause
+                                </button>
+                            ) : (
+                                <button
+                                    className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
+                                    onClick={(e) => handleControl(e, 'resume')}
+                                    disabled={isPending}
+                                >
+                                    <Play className="w-4 h-4 fill-current" /> Resume
+                                </button>
                             )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+
+                            <button
+                                className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100 transition-colors"
+                                onClick={(e) => handleControl(e, 'stop')}
+                                disabled={isPending}
+                            >
+                                <Square className="w-4 h-4 fill-current" /> Stop Simulation
+                            </button>
+                        </div>
+
+                        {actionError && (
+                            <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 mt-2">
+                                {actionError}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
-        </motion.div>
+        </div>
     );
 };
 
