@@ -42,10 +42,9 @@ export const useDeviceControl = () => {
                 speed: speed || 30, // Default to 30 km/h
                 loop: false,
             };
-            await streamService.start(deviceId, routeId, options);
+            const truthStatus = await streamService.start(deviceId, routeId, options);
 
-            // Single source of truth sync
-            const truthStatus = await streamService.getStatus(deviceId);
+            // Single source of truth sync using POST response
             if (truthStatus && truthStatus.status !== 'stopped') {
                 updateDeviceStatus(deviceId, 'EXECUTING');
             } else {
@@ -76,10 +75,9 @@ export const useDeviceControl = () => {
         setIsLoading(true);
         setError(null);
         try {
-            await streamService.pause(deviceId);
+            const truthStatus = await streamService.pause(deviceId);
 
             // Single source of truth sync
-            const truthStatus = await streamService.getStatus(deviceId);
             if (truthStatus && truthStatus.status !== 'stopped') {
                 updateDeviceStatus(deviceId, 'EXECUTING');
             } else {
@@ -109,10 +107,9 @@ export const useDeviceControl = () => {
         setIsLoading(true);
         setError(null);
         try {
-            await streamService.resume(deviceId);
+            const truthStatus = await streamService.resume(deviceId);
 
             // Single source of truth sync
-            const truthStatus = await streamService.getStatus(deviceId);
             if (truthStatus && truthStatus.status !== 'stopped') {
                 updateDeviceStatus(deviceId, 'EXECUTING');
             } else {
@@ -145,10 +142,9 @@ export const useDeviceControl = () => {
         setIsLoading(true);
         setError(null);
         try {
-            await streamService.stop(deviceId);
+            const truthStatus = await streamService.stop(deviceId);
 
             // Single source of truth sync
-            const truthStatus = await streamService.getStatus(deviceId); // Poll to ensure status is digested
             if (truthStatus && truthStatus.status !== 'stopped') {
                 updateDeviceStatus(deviceId, 'EXECUTING');
             } else {
