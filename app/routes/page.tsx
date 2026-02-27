@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Route, CreateRouteRequest } from '@/types';
 import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
+import { Route as RouteIcon, ArrowLeft, Plus } from 'lucide-react';
 
 const RoutePreviewPlayer = dynamic(
     () => import('@/components/routes/RoutePreviewPlayer').then((mod) => mod.RoutePreviewPlayer),
@@ -167,44 +169,65 @@ export default function RoutesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
+        <div className="min-h-screen bg-[#f3f4f6] relative overflow-x-hidden">
+            {/* Abstract Background Shapes */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2"></div>
+                <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-400/10 rounded-full blur-[120px] translate-x-1/3 translate-y-1/3"></div>
+            </div>
+
+            {/* Header (Floating Glass) */}
+            <header className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8 mb-8">
+                <div className="max-w-7xl mx-auto glass rounded-2xl shadow-lg shadow-gray-200/50 p-3 sm:px-6 flex items-center justify-between border border-white/60">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+                            <RouteIcon className="w-5 h-5 text-white" />
+                        </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <h1 className="text-xl font-bold text-gray-900 tracking-tight">
                                 Route Management
                             </h1>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs text-indigo-600 font-medium tracking-wide uppercase">
                                 Create and manage GPS routes
                             </p>
                         </div>
+                    </div>
 
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="ghost"
-                                onClick={() => router.push('/')}
-                            >
-                                ← Back to Dashboard
-                            </Button>
-                        </div>
+                    <div className="flex items-center gap-4">
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => router.push('/')}
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 border border-gray-200 transition-colors shadow-sm"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">Dashboard</span>
+                        </motion.button>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold text-gray-900">
-                            Available Routes ({routes.length})
-                        </h2>
+            <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="space-y-6"
+                >
+                    <div className="flex items-center justify-between px-2">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-1 bg-indigo-500 rounded-full"></div>
+                            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                                Available Routes <span className="text-gray-400 text-lg font-normal">({routes.length})</span>
+                            </h2>
+                        </div>
                         <Button
                             variant="primary"
                             onClick={() => setIsCreateModalOpen(true)}
+                            className="flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-shadow hover:shadow-blue-500/40"
                         >
-                            + Create Route
+                            <Plus className="w-4 h-4" /> Create Route
                         </Button>
                     </div>
 
@@ -213,7 +236,7 @@ export default function RoutesPage() {
                         onDeleteRoute={handleDeleteRoute}
                         onPreviewRoute={handlePreviewRoute}
                     />
-                </div>
+                </motion.div>
             </main>
 
             {/* Create Route Modal */}

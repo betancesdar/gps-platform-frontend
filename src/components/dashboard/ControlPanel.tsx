@@ -174,10 +174,11 @@ export const ControlPanel: React.FC = () => {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleCleanup}
                                 disabled={isCleaning}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-red-500 font-semibold border border-red-100 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-transparent text-gray-400 font-medium border border-transparent hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-none"
+                                title="Wipe Database"
                             >
                                 <Trash2 className="w-5 h-5" />
-                                <span>Wipe</span>
+                                <span className="sm:hidden lg:inline">Wipe</span>
                             </motion.button>
                         </div>
                     </div>

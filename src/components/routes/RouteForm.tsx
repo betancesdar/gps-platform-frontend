@@ -6,6 +6,7 @@ import { Tabs } from '../ui/Tabs';
 import { AddressRouteBuilder } from './AddressRouteBuilder';
 import { WaypointsRouteBuilder } from './WaypointsRouteBuilder';
 import { CreateRouteRequest, RoutePointDto } from '@/types';
+import { MapPin, Clock, FolderOpen, AlertTriangle, ClipboardList, Save, Wand2, Map as MapIcon, Play, Square, CheckCircle2 } from 'lucide-react';
 
 interface RouteFormProps {
     onSubmit: (data: CreateRouteRequest) => void;
@@ -184,13 +185,13 @@ export const RouteForm: React.FC<RouteFormProps> = ({
             </div>
 
             {/* Waypoints Section */}
-            <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl">
+            <div className="p-6 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 border border-blue-200/60 rounded-2xl shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            📍 Paradas de la Ruta (Waypoints)
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-blue-600" /> Paradas de la Ruta (Waypoints)
                         </h3>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-gray-500 mt-1 font-medium">
                             Define los puntos A, B, C... donde el vehículo se detendrá
                         </p>
                     </div>
@@ -281,8 +282,8 @@ export const RouteForm: React.FC<RouteFormProps> = ({
 
                                             {/* Wait Duration */}
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                                    ⏱️ Tiempo de Espera (minutos) *
+                                                <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                                    <Clock className="w-3.5 h-3.5 text-blue-500" /> Tiempo Espera (min) *
                                                 </label>
                                                 <input
                                                     type="number"
@@ -309,15 +310,15 @@ export const RouteForm: React.FC<RouteFormProps> = ({
                                     </div>
 
                                     {/* Waypoint Info Footer */}
-                                    <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 flex items-center justify-between">
-                                        <span>
-                                            {isFirst && '🟢 Punto de inicio'}
-                                            {isLast && !isFirst && '🔴 Punto final'}
-                                            {!isFirst && !isLast && '🔵 Parada intermedia'}
-                                        </span>
+                                    <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-xs font-semibold">
+                                            {isFirst && <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md"><Play className="w-3.5 h-3.5 fill-current" /> Inicio</span>}
+                                            {isLast && !isFirst && <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-md"><Square className="w-3.5 h-3.5 fill-current" /> Fín</span>}
+                                            {!isFirst && !isLast && <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md"><MapPin className="w-3.5 h-3.5" /> Intermedio</span>}
+                                        </div>
                                         {parseFloat(waypoint.waitDuration) > 0 && (
-                                            <span className="font-medium text-blue-600">
-                                                Se detendrá {waypoint.waitDuration} min
+                                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                                                Espera {waypoint.waitDuration} min
                                             </span>
                                         )}
                                     </div>
@@ -329,23 +330,23 @@ export const RouteForm: React.FC<RouteFormProps> = ({
             </div>
 
             {/* Optional: GPX Import Section */}
-            <details className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-                    📁 Avanzado: Importar trayectoria desde GPX (opcional)
+            <details className="p-4 bg-gray-50/80 border border-gray-200/80 rounded-2xl group transition-all">
+                <summary className="cursor-pointer text-sm font-bold text-gray-600 group-hover:text-gray-900 flex items-center gap-2 select-none">
+                    <FolderOpen className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" /> Avanzado: Importar trayectoria desde GPX
                 </summary>
-                <div className="mt-3 space-y-2">
+                <div className="mt-4 space-y-3 pl-6">
                     <input
                         type="file"
                         accept=".gpx"
                         onChange={handleGPXUpload}
-                        className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-600 file:text-white hover:file:bg-gray-700"
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 transition-colors cursor-pointer"
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs font-medium text-gray-400">
                         Importa puntos de trayectoria desde GPX. Los waypoints definidos arriba tendrán prioridad.
                     </p>
                     {gpxPoints.length > 0 && (
-                        <div className="text-xs text-green-700 bg-green-50 p-2 rounded">
-                            ✓ {gpxPoints.length} puntos importados desde GPX
+                        <div className="text-xs font-bold text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4" /> {gpxPoints.length} puntos importados exitosamente
                         </div>
                     )}
                 </div>
@@ -353,35 +354,37 @@ export const RouteForm: React.FC<RouteFormProps> = ({
 
             {/* Validation Message */}
             {waypoints.length > 0 && waypoints.length < 2 && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                    ⚠️ Necesitas al menos 2 waypoints (inicio y fin) para crear una ruta válida
+                <div className="p-3.5 bg-amber-50 border border-amber-200/60 rounded-xl text-sm font-semibold text-amber-800 flex items-center gap-2 shadow-sm">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" /> Necesitas al menos 2 waypoints (inicio y fin) para crear una ruta válida
                 </div>
             )}
 
             {/* Summary */}
             {waypoints.length >= 2 && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 className="text-sm font-semibold text-green-900 mb-2">📋 Resumen de la Ruta</h4>
-                    <ul className="text-sm text-green-800 space-y-1">
-                        <li>• <strong>{waypoints.length}</strong> paradas configuradas</li>
-                        <li>• Recorrido: {waypoints.map(w => w.label).join(' → ')}</li>
-                        <li>• Tiempo total de espera: <strong>
+                <div className="p-5 bg-emerald-50 border border-emerald-200/60 rounded-2xl shadow-sm">
+                    <h4 className="text-sm font-bold text-emerald-900 mb-2 flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4" /> Resumen de la Ruta
+                    </h4>
+                    <ul className="text-sm font-medium text-emerald-800 space-y-1.5 opacity-90">
+                        <li className="flex gap-2"><span>•</span> <span><strong>{waypoints.length}</strong> paradas configuradas</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>Recorrido: {waypoints.map(w => w.label).join(' → ')}</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>Tiempo total de espera: <strong>
                             {waypoints.reduce((sum, w) => sum + parseFloat(w.waitDuration || '0'), 0).toFixed(1)} minutos
-                        </strong></li>
+                        </strong></span></li>
                     </ul>
                 </div>
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <div className="flex gap-3 pt-5 border-t border-gray-100">
                 <Button
                     type="submit"
                     variant="primary"
                     isLoading={isLoading}
                     disabled={isLoading || !name || waypoints.length < 2}
-                    className="flex-1"
+                    className="flex-1 font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
                 >
-                    💾 Guardar Ruta
+                    <Save className="w-4 h-4" /> Guardar Ruta
                 </Button>
                 <Button
                     type="button"
@@ -415,12 +418,12 @@ export const RouteForm: React.FC<RouteFormProps> = ({
             tabs={[
                 {
                     id: 'manual',
-                    label: '📍 Simple Waypoints',
+                    label: <span className="flex items-center gap-1.5 font-semibold tracking-wide"><MapPin className="w-4 h-4" /> Simple Waypoints</span> as any,
                     content: manualFormContent,
                 },
                 {
                     id: 'advanced',
-                    label: '✨ Advanced Builder',
+                    label: <span className="flex items-center gap-1.5 font-semibold tracking-wide"><Wand2 className="w-4 h-4" /> Advanced Builder</span> as any,
                     content: (
                         <WaypointsRouteBuilder
                             onRouteCreated={(routeId) => {
@@ -434,7 +437,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({
                 },
                 {
                     id: 'address',
-                    label: '🗺️ From Address',
+                    label: <span className="flex items-center gap-1.5 font-semibold tracking-wide"><MapIcon className="w-4 h-4" /> From Address</span> as any,
                     content: addressFormContent,
                 },
             ]}
