@@ -43,7 +43,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 }) => {
     const device = useDevicesStore(state => state.devicesById[deviceId]);
     const location = useDevicesLocationStore(state => state.locationsByDeviceId[deviceId]);
-    const { startDevice, pauseDevice, resumeDevice, stopDevice, isLoading, isDevicePending } = useDeviceControl();
+    const { startDevice, pauseDevice, resumeDevice, stopDevice, skipDwell, extendDwell, isLoading, isDevicePending } = useDeviceControl();
 
     // Safety check if device was deleted but list hasn't updated
     if (!device) return null;
@@ -143,7 +143,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                 useDevicesLocationStore.getState().updateLocation(device.id, {
                     ...useDevicesLocationStore.getState().locationsByDeviceId[device.id],
                     state: 'MOVE',
-                    dwellRemainingSeconds: undefined
+                    dwellRemainingSeconds: undefined,
+                    dwellWaypointKind: undefined,
+                    dwellWaypointLabel: undefined
                 });
             }
         } catch (err: any) {
@@ -168,11 +170,11 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const isOnline = device.status === 'ONLINE';
     const isOffline = device.status === 'OFFLINE';
 
-    // UI calculation for stream mode logic
-    const activeState = streamInfo?.state || location?.state;
-    const isStreamPaused = streamInfo?.status === 'paused' || activeState === 'PAUSED';
+    // UI calculation for stream mode logic. Give precedence to LIVE location state over HTTP fetch state.
+    const activeState = location?.state || streamInfo?.state;
+    const isStreamPaused = activeState === 'PAUSED' || streamInfo?.status === 'paused';
     const isStreamWaiting = activeState === 'WAIT';
-    const dwellRemaining = streamInfo?.dwellRemainingSeconds ?? location?.dwellRemainingSeconds;
+    const dwellRemaining = location?.dwellRemainingSeconds ?? streamInfo?.dwellRemainingSeconds;
 
     // Sync the local countdown
     React.useEffect(() => {
@@ -431,7 +433,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                         onClick={async (e) => {
                                             e.stopPropagation();
                                             setActionError(null);
-                                            try { await useDeviceControl().skipDwell(device.id); }
+                                            try { await skipDwell(device.id); }
                                             catch (err: any) { setActionError(err.message); }
                                         }}
                                         disabled={isPending}
@@ -443,7 +445,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                         onClick={async (e) => {
                                             e.stopPropagation();
                                             setActionError(null);
-                                            try { await useDeviceControl().extendDwell(device.id, 10); }
+                                            try { await extendDwell(device.id, 10); }
                                             catch (err: any) { setActionError(err.message); }
                                         }}
                                         disabled={isPending}

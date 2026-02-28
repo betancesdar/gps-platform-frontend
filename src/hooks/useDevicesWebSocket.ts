@@ -115,7 +115,9 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 const deviceId = message.deviceId || data.deviceId;
                 if (!deviceId) return;
 
+                const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
                 updateLocation(deviceId, {
+                    ...prevLoc, // Merge previous to preserve dwell metadata
                     lat: message.latitude,
                     lng: message.longitude,
                     bearing: message.bearing,
