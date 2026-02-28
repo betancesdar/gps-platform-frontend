@@ -117,4 +117,27 @@ export const streamService = {
         }
         return [];
     },
+
+    /**
+     * Skip dwell time for a stream
+     * POST /api/stream/skip-dwell
+     */
+    async skipDwell(deviceId: string): Promise<any> {
+        const response = await axiosInstance.post<ApiResponse<any>>('/stream/skip-dwell', {
+            deviceId,
+        });
+        return response.data;
+    },
+
+    /**
+     * Extend dwell time for a stream
+     * POST /api/stream/extend-dwell
+     */
+    async extendDwell(deviceId: string, seconds: number): Promise<any> {
+        const response = await axiosInstance.post<ApiResponse<any>>('/stream/extend-dwell', {
+            deviceId,
+            seconds,
+        });
+        return response.data;
+    }
 };

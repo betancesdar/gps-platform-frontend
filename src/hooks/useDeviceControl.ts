@@ -170,12 +170,46 @@ export const useDeviceControl = () => {
         }
     };
 
+    const skipDwell = async (deviceId: string) => {
+        if (isDevicePending(deviceId)) return;
+        setPending(deviceId, true);
+        setError(null);
+        try {
+            const result = await streamService.skipDwell(deviceId);
+            return result;
+        } catch (err: any) {
+            const message = err.response?.data?.message || err.response?.data?.error || err.message || 'Error skipping dwell';
+            setError(message);
+            throw err;
+        } finally {
+            setPending(deviceId, false);
+        }
+    };
+
+    const extendDwell = async (deviceId: string, seconds: number) => {
+        if (isDevicePending(deviceId)) return;
+        setPending(deviceId, true);
+        setError(null);
+        try {
+            const result = await streamService.extendDwell(deviceId, seconds);
+            return result;
+        } catch (err: any) {
+            const message = err.response?.data?.message || err.response?.data?.error || err.message || 'Error extending dwell';
+            setError(message);
+            throw err;
+        } finally {
+            setPending(deviceId, false);
+        }
+    };
+
     return {
         startDevice,
         pauseDevice,
         resumeDevice,
         stopDevice,
         getStreamStatus,
+        skipDwell,
+        extendDwell,
         isLoading,
         isDevicePending,
         error,

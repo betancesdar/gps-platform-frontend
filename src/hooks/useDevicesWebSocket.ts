@@ -138,9 +138,26 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 useDevicesStore.getState().updateDevice(data.deviceId, {
                     status: 'OFFLINE'
                 });
-            } else if (event === 'DEVICE_STATUS_UPDATE') {
-                console.log('🔄 Device Status Update:', data);
-                useDevicesStore.getState().updateDeviceStatus(data.deviceId, data.status);
+            } else if (event === 'STREAM_WAITING_START' || event === 'STREAM_WAITING_TICK' || event === 'STREAM_WAITING_EXTENDED') {
+                const deviceId = data.deviceId;
+                if (!deviceId) return;
+
+                // Directly update the store's location sub-state to force dwell remaining seconds update
+                updateLocation(deviceId, {
+                    ...useDevicesLocationStore.getState().locationsByDeviceId[deviceId],
+                    state: 'WAIT', // ensure it remains WAIT
+                    dwellRemainingSeconds: Math.round((data.remainingMs || data.newRemainingMs || 0) / 1000)
+                });
+
+            } else if (event === 'STREAM_WAITING_SKIPPED') {
+                const deviceId = data.deviceId;
+                if (!deviceId) return;
+
+                updateLocation(deviceId, {
+                    ...useDevicesLocationStore.getState().locationsByDeviceId[deviceId],
+                    state: 'MOVE',
+                    dwellRemainingSeconds: undefined
+                });
             } else {
                 if (process.env.NODE_ENV === 'development') {
                     console.log(`[WS Event] ${event}`, data);

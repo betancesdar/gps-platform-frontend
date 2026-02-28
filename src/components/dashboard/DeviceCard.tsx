@@ -63,9 +63,12 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         engineMode?: string;
         status?: string;
         state?: string;
-        dwellRemainingSeconds?: number
+        dwellRemainingSeconds?: number;
     } | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+
+    // Dynamic Live Local Countdown State for Waits
+    const [localDwellSeconds, setLocalDwellSeconds] = useState<number | null>(null);
 
     const routeOptions = React.useMemo(() => safeRoutes.map(r => ({
         id: r.id,
@@ -163,6 +166,26 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const isStreamPaused = streamInfo?.status === 'paused' || activeState === 'PAUSED';
     const isStreamWaiting = activeState === 'WAIT';
     const dwellRemaining = streamInfo?.dwellRemainingSeconds ?? location?.dwellRemainingSeconds;
+
+    // Sync the local countdown
+    React.useEffect(() => {
+        if (isStreamWaiting && dwellRemaining !== undefined) {
+            setLocalDwellSeconds(dwellRemaining);
+        } else if (!isStreamWaiting) {
+            setLocalDwellSeconds(null);
+        }
+    }, [isStreamWaiting, dwellRemaining]);
+
+    // Local tick for the countdown without re-rendering everything
+    React.useEffect(() => {
+        if (!isStreamWaiting || isStreamPaused || localDwellSeconds === null || localDwellSeconds <= 0) return;
+
+        const interval = setInterval(() => {
+            setLocalDwellSeconds(prev => (prev && prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isStreamWaiting, isStreamPaused, localDwellSeconds]);
 
     const activeRouteName = safeRoutes.find(r => r.id === selectedRouteId)?.name || 'Ruta Desconocida';
 
@@ -363,9 +386,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                             </span>
                                         )}
                                         {isStreamWaiting && !isStreamPaused && (
-                                            <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1">
+                                            <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1 transition-all">
                                                 <Clock className="w-3 h-3" />
-                                                WAITING: {dwellRemaining ?? '--'}s
+                                                WAITING: {localDwellSeconds ?? dwellRemaining ?? '--'}s
                                             </span>
                                         )}
                                     </div>
@@ -374,7 +397,34 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                         )}
 
                         <div className="grid grid-cols-2 gap-3 pt-1">
-                            {!isStreamPaused ? (
+                            {isStreamWaiting && !isStreamPaused ? (
+                                <>
+                                    <button
+                                        className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-sm border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            setActionError(null);
+                                            try { await useDeviceControl().skipDwell(device.id); }
+                                            catch (err: any) { setActionError(err.message); }
+                                        }}
+                                        disabled={isPending}
+                                    >
+                                        <Play className="w-4 h-4 fill-current" /> Skip Dwell
+                                    </button>
+                                    <button
+                                        className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-50 text-purple-700 font-semibold text-sm border border-purple-100 hover:bg-purple-100 transition-colors"
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            setActionError(null);
+                                            try { await useDeviceControl().extendDwell(device.id, 10); }
+                                            catch (err: any) { setActionError(err.message); }
+                                        }}
+                                        disabled={isPending}
+                                    >
+                                        <Clock className="w-4 h-4" /> +10s
+                                    </button>
+                                </>
+                            ) : !isStreamPaused ? (
                                 <button
                                     className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
                                     onClick={(e) => handleControl(e, 'pause')}
