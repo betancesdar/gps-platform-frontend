@@ -72,7 +72,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
     const routeOptions = React.useMemo(() => safeRoutes.map(r => ({
         id: r.id,
-        label: `${r.name} (${r.pointCount || 0} pts)`
+        label: `${r.name} (${r.pointCount || (r as any).totalPoints || (r as any).pointsCount || 0} pts)`
     })), [safeRoutes]);
 
     const isExecuting = device.status === 'EXECUTING';
