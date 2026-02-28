@@ -53,8 +53,9 @@ function transformRoute(backendRoute: BackendRoute): Route {
         distance: 0,
         metadata: {
             sourceType: backendRoute.sourceType,
-            pointCount: backendRoute.pointCount,
+            pointCount: backendRoute.pointCount || (backendRoute as any).totalPoints || 0,
         },
+        pointCount: backendRoute.pointCount || (backendRoute as any).totalPoints || 0,
         createdAt: new Date(backendRoute.createdAt),
         updatedAt: new Date(backendRoute.createdAt),
     };
