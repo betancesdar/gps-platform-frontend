@@ -129,6 +129,8 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 const deviceId = msgData.deviceId || meta?.deviceId;
                 if (!deviceId) return;
 
+                console.log("WS->store", deviceId, msgData.state, meta?.dwellRemainingSeconds);
+
                 const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
                 updateLocation(deviceId, {
                     ...prevLoc,
@@ -191,14 +193,8 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
 
         connectWebSocket();
 
-        // Background polling for HTTP reconciliation of ONLINE/OFFLINE
-        const fallBackStatusPoller = setInterval(() => {
-            useDevicesStore.getState().syncDeviceStatuses();
-        }, 5000);
-
         // Cleanup
         return () => {
-            clearInterval(fallBackStatusPoller);
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
             }

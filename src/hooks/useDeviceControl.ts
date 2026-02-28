@@ -40,9 +40,11 @@ export const useDeviceControl = () => {
                 const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
                 updateLocation(deviceId, {
                     ...prevLoc,
-                    streamStatus: res.status,
+                    streamStatus: res.status ?? prevLoc?.streamStatus,
                     state: res.state ?? prevLoc?.state,
-                    dwellRemainingSeconds: res.dwellRemainingSeconds ?? null
+                    dwellRemainingSeconds: typeof res.dwellRemainingSeconds === 'number'
+                        ? res.dwellRemainingSeconds
+                        : (prevLoc as any)?.dwellRemainingSeconds
                 });
             } else {
                 updateDeviceStatus(deviceId, 'ONLINE');

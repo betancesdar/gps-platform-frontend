@@ -43,11 +43,31 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
     selectedRouteIds: {},
 
     setDevices: (devices) => {
+        const prevDevicesById = get().devicesById;
         const devicesById = devices.reduce((acc, dev) => {
-            acc[dev.id] = dev;
+            const prev = prevDevicesById[dev.id];
+            if (prev) {
+                // MERGE: Preserve runtime overrides like EXECUTING if backend returned ONLINE
+                const preservedStatus = (prev.status === 'EXECUTING' && dev.status === 'ONLINE')
+                    ? 'EXECUTING'
+                    : dev.status;
+
+                acc[dev.id] = {
+                    ...dev,
+                    status: preservedStatus,
+                    // Blindaje solicitado por Prompt (merge runtime fields invisibles al API)
+                    isConnected: (prev as any).isConnected ?? (dev as any).isConnected,
+                    streamStatus: (prev as any).streamStatus ?? (dev as any).streamStatus,
+                    streamState: (prev as any).streamState ?? (dev as any).streamState,
+                    dwellRemainingSeconds: (prev as any).dwellRemainingSeconds ?? (dev as any).dwellRemainingSeconds,
+                    lastStreamTs: (prev as any).lastStreamTs ?? (dev as any).lastStreamTs
+                } as Device;
+            } else {
+                acc[dev.id] = dev;
+            }
             return acc;
         }, {} as Record<string, Device>);
-        set({ devices, devicesById });
+        set({ devices: Object.values(devicesById), devicesById });
     },
 
     addDevice: (device) =>
@@ -82,11 +102,28 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
     updateDeviceStatus: (deviceId, status) =>
         set((state) => {
             const current = state.devicesById[deviceId];
-            if (!current || current.status === status) return state;
+            if (!current) return state;
+
+            // Protect EXECUTING status from being downgraded to ONLINE by generic WS pings
+            const newStatus = (current.status === 'EXECUTING' && status === 'ONLINE')
+                ? 'EXECUTING'
+                : status;
+
+            if (current.status === newStatus) {
+                // Return early if there's no visible change, but update lastSeen optionally?
+                // The prompt says "preserve state", so we can just update lastSeen
+                return {
+                    devicesById: {
+                        ...state.devicesById,
+                        [deviceId]: { ...current, lastSeen: new Date() }
+                    }
+                };
+            }
+
             return {
                 devicesById: {
                     ...state.devicesById,
-                    [deviceId]: { ...current, status, lastSeen: new Date() }
+                    [deviceId]: { ...current, status: newStatus, lastSeen: new Date() }
                 }
             };
         }),
@@ -128,6 +165,7 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
             }
 
             const filteredDevices = devices.filter(d => !deletedIds.includes(d.id));
+            console.log("API->mergeDevices", filteredDevices.length);
             setDevices(filteredDevices);
             setError(null);
         } catch (err: any) {
@@ -148,17 +186,23 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
 
                 devices.forEach(d => {
                     const current = newById[d.id];
-                    if (current && current.status !== d.status) {
-                        newById[d.id] = { ...current, status: d.status, lastSeen: new Date() };
-                        changed = true;
+                    if (current) {
+                        const newStatus = (current.status === 'EXECUTING' && d.status === 'ONLINE')
+                            ? 'EXECUTING'
+                            : d.status;
+
+                        if (current.status !== newStatus) {
+                            newById[d.id] = { ...current, status: newStatus, lastSeen: d.lastSeen || current.lastSeen };
+                            changed = true;
+                        }
                     }
                 });
 
                 if (!changed) return state;
-                return { devicesById: newById };
+                return { devicesById: newById, devices: Object.values(newById) };
             });
         } catch (err) {
-            console.error('Failed to sync device statuses:', err);
+            console.warn('Failed to sync device statuses:', err);
         }
     },
 

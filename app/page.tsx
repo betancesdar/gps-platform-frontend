@@ -9,7 +9,7 @@ import { useRoutesStore } from '@/store/useRoutesStore';
 import { devicesService } from '@/services/devices.service';
 import { routesService } from '@/services/routes.service';
 import { useDevicesWebSocket } from '@/hooks/useDevicesWebSocket';
-import { Map as MapIcon, LogOut, Route as RouteIcon, LayoutDashboard } from 'lucide-react';
+import { Map as MapIcon, LogOut, Route as RouteIcon, LayoutDashboard, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const DeviceList = dynamic(
@@ -56,32 +56,33 @@ export default function DashboardPage() {
     }
   }, [mounted, isAuthenticated, authLoading, router]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!mounted || !isAuthenticated) return;
+  const loadData = React.useCallback(async () => {
+    if (!mounted || !isAuthenticated) return;
 
-      try {
-        setDevicesLoading(true);
-        setRoutesLoading(true);
+    try {
+      setDevicesLoading(true);
+      setRoutesLoading(true);
 
-        const [devices, routes] = await Promise.all([
-          devicesService.getDevices(),
-          routesService.getRoutes(),
-        ]);
+      const [devices, routes] = await Promise.all([
+        devicesService.getDevices(),
+        routesService.getRoutes(),
+      ]);
 
-        setDevices(devices);
-        setRoutes(routes);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setDevicesLoading(false);
-        setRoutesLoading(false);
-        setIsInitializing(false);
-      }
-    };
-
-    loadData();
+      // setDevices in useDevicesStore now safely merges device status so WebSocket states are preserved
+      setDevices(devices);
+      setRoutes(routes);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setDevicesLoading(false);
+      setRoutesLoading(false);
+      setIsInitializing(false);
+    }
   }, [mounted, isAuthenticated, setDevices, setRoutes, setDevicesLoading, setRoutesLoading]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleLogout = () => {
     logout();
@@ -147,6 +148,16 @@ export default function DashboardPage() {
               )}
 
               <div className="h-8 w-[1px] bg-gray-200 hidden md:block"></div>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => loadData()}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 font-medium rounded-xl hover:bg-indigo-100 border border-indigo-100 transition-colors shadow-sm"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span className="hidden sm:inline">Refresh</span>
+              </motion.button>
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
