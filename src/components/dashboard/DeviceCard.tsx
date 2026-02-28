@@ -425,7 +425,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 pt-1">
-                            {isStreamWaiting && !isStreamPaused && process.env.NEXT_PUBLIC_ENABLE_SKIP_WAIT !== 'false' ? (
+                            {isStreamWaiting && !isStreamPaused && process.env.NEXT_PUBLIC_ENABLE_SKIP_WAIT !== 'false' && (
                                 <>
                                     <button
                                         className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-sm border border-indigo-100 hover:bg-indigo-100 transition-colors"
@@ -452,7 +452,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                         <Clock className="w-4 h-4" /> +10s
                                     </button>
                                 </>
-                            ) : streamStatus === 'running' && !isStreamPaused ? (
+                            )}
+
+                            {streamStatus === 'running' && !isStreamPaused && (
                                 <button
                                     className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
                                     onClick={(e) => handleControl(e, 'pause')}
@@ -460,7 +462,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                 >
                                     <Pause className="w-4 h-4 fill-current" /> Pause
                                 </button>
-                            ) : streamStatus === 'paused' || isStreamPaused ? (
+                            )}
+
+                            {(streamStatus === 'paused' || isStreamPaused) && (
                                 <button
                                     className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
                                     onClick={(e) => handleControl(e, 'resume')}
@@ -468,7 +472,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                 >
                                     <Play className="w-4 h-4 fill-current" /> Resume
                                 </button>
-                            ) : null}
+                            )}
 
                             <button
                                 className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100 transition-colors"
