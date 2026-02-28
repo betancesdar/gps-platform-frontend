@@ -170,15 +170,25 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const isOnline = device.status === 'ONLINE';
     const isOffline = device.status === 'OFFLINE';
 
-    // UI calculation for stream mode logic. Give precedence to LIVE location state over HTTP fetch state.
-    const activeState = location?.state || streamInfo?.state;
-    const isStreamPaused = activeState === 'PAUSED' || streamInfo?.status === 'paused';
-    const isStreamWaiting = activeState === 'WAIT';
-    const dwellRemaining = location?.dwellRemainingSeconds ?? streamInfo?.dwellRemainingSeconds;
+    const streamStatus = location?.streamStatus || 'stopped';
+    const streamState = location?.state || 'MOVE';
+    const dwellRemaining = location?.dwellRemainingSeconds ?? null;
 
-    // Sync the local countdown
+    // UI calculation for stream mode logic from SSOT
+    const isStreamPaused = streamStatus === 'paused' || streamState === 'PAUSED';
+    const isStreamWaiting = streamStatus === 'running' && streamState === 'WAIT';
+
+    let displayBadge: string = device.status;
+    if (isExecuting) {
+        if (isStreamWaiting) displayBadge = 'WAIT';
+        else if (streamStatus === 'running') displayBadge = 'RUNNING';
+        else if (streamStatus === 'paused') displayBadge = 'PAUSED';
+        else if (streamStatus === 'stopped') displayBadge = 'STOPPED';
+    }
+
+    // Sync the local countdown ONLY from WebSocket updates
     React.useEffect(() => {
-        if (isStreamWaiting && dwellRemaining !== undefined) {
+        if (isStreamWaiting && dwellRemaining !== null) {
             setLocalDwellSeconds(dwellRemaining);
         } else if (!isStreamWaiting) {
             setLocalDwellSeconds(null);
@@ -188,7 +198,6 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     // Local tick for the countdown without re-rendering everything
     React.useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-
         if (isStreamWaiting && !isStreamPaused && localDwellSeconds !== null && localDwellSeconds > 0) {
             interval = setInterval(() => {
                 setLocalDwellSeconds(prev => {
@@ -198,7 +207,6 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                 });
             }, 1000);
         }
-
         return () => {
             if (interval) clearInterval(interval);
         };
@@ -297,12 +305,12 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                         isOnline ? 'bg-blue-50/80 border-blue-100' :
                             'bg-gray-50/80 border-gray-100'
                         }`}>
-                        <StatusBadge status={device.status} />
+                        <StatusBadge status={displayBadge} />
                     </div>
                 </div>
 
                 {/* Controls Area */}
-                {!isExecuting ? (
+                {streamStatus === 'stopped' || !isExecuting ? (
                     <div
                         className="space-y-4 pt-4 border-t border-gray-100"
                         onClick={(e) => e.stopPropagation()}
@@ -378,55 +386,46 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                         className="flex flex-col gap-3 pt-4 border-t border-gray-100"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {streamInfo && (
-                            <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-xl space-y-1.5 shadow-sm">
-                                <div className="text-xs font-bold flex justify-between items-center text-gray-800 bg-white p-2 rounded-lg border border-blue-100/50">
-                                    <span className="flex items-center gap-1 text-blue-600 uppercase tracking-widest text-[10px]"><Navigation className="w-3 h-3" /> Ruta</span>
-                                    <span className="truncate max-w-[150px]" title={activeRouteName}>{activeRouteName}</span>
+                        <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-xl space-y-1.5 shadow-sm">
+                            <div className="text-xs font-bold flex justify-between items-center text-gray-800 bg-white p-2 rounded-lg border border-blue-100/50">
+                                <span className="flex items-center gap-1 text-blue-600 uppercase tracking-widest text-[10px]"><Navigation className="w-3 h-3" /> Ruta</span>
+                                <span className="truncate max-w-[150px]" title={activeRouteName}>{activeRouteName}</span>
+                            </div>
+                            <div className="text-xs font-semibold text-blue-800 flex justify-between px-1 pt-1">
+                                <span>Speed Configured:</span>
+                                <span>{speed} km/h</span>
+                            </div>
+                            {streamInfo?.speedApplied !== undefined && (
+                                <div className="text-xs font-semibold text-emerald-700 flex justify-between">
+                                    <span>Speed Applied:</span>
+                                    <span>{streamInfo.speedApplied} km/h</span>
                                 </div>
-                                <div className="text-xs font-semibold text-blue-800 flex justify-between px-1 pt-1">
-                                    <span>Speed Configured:</span>
-                                    <span>{speed} km/h</span>
-                                </div>
-                                {streamInfo.speedApplied !== undefined && (
-                                    <div className="text-xs font-semibold text-emerald-700 flex justify-between">
-                                        <span>Speed Applied:</span>
-                                        <span>{streamInfo.speedApplied} km/h</span>
-                                    </div>
+                            )}
+                            <div className="text-xs font-medium text-gray-500 mt-1 uppercase flex justify-between items-center">
+                                <span>Engine: {streamInfo?.engineMode || 'distance'}</span>
+                                {isStreamPaused && (
+                                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                                        PAUSED
+                                    </span>
                                 )}
-                                {streamInfo.engineMode && (
-                                    <div className="text-xs font-medium text-gray-500 mt-1 uppercase flex justify-between items-center">
-                                        <span>Engine: {streamInfo.engineMode}</span>
-                                        {isStreamPaused && (
-                                            <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
-                                                PAUSED
+                                {isStreamWaiting && !isStreamPaused && (
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1 transition-all">
+                                            <Clock className="w-3 h-3" />
+                                            Stop: {localDwellSeconds ?? dwellRemaining ?? 'WAIT'}
+                                        </span>
+                                        {location?.dwellWaypointLabel && (
+                                            <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold text-[10px] truncate max-w-[80px]" title={location.dwellWaypointLabel}>
+                                                {location.dwellWaypointLabel}
                                             </span>
-                                        )}
-                                        {isStreamWaiting && !isStreamPaused && (
-                                            <div className="flex items-center gap-1.5">
-                                                <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1 transition-all">
-                                                    <Clock className="w-3 h-3" />
-                                                    WAITING: {localDwellSeconds ?? dwellRemaining ?? '--'}s
-                                                </span>
-                                                {location?.dwellWaypointLabel && (
-                                                    <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold text-[10px] truncate max-w-[80px]" title={location.dwellWaypointLabel}>
-                                                        {location.dwellWaypointLabel}
-                                                    </span>
-                                                )}
-                                                {location?.dwellWaypointKind && (
-                                                    <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded border border-gray-200 font-bold text-[9px] uppercase">
-                                                        {location.dwellWaypointKind}
-                                                    </span>
-                                                )}
-                                            </div>
                                         )}
                                     </div>
                                 )}
                             </div>
-                        )}
+                        </div>
 
                         <div className="grid grid-cols-2 gap-3 pt-1">
-                            {isStreamWaiting && !isStreamPaused ? (
+                            {isStreamWaiting && !isStreamPaused && process.env.NEXT_PUBLIC_ENABLE_SKIP_WAIT !== 'false' ? (
                                 <>
                                     <button
                                         className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-sm border border-indigo-100 hover:bg-indigo-100 transition-colors"
@@ -453,7 +452,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                         <Clock className="w-4 h-4" /> +10s
                                     </button>
                                 </>
-                            ) : !isStreamPaused ? (
+                            ) : streamStatus === 'running' && !isStreamPaused ? (
                                 <button
                                     className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
                                     onClick={(e) => handleControl(e, 'pause')}
@@ -461,7 +460,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                 >
                                     <Pause className="w-4 h-4 fill-current" /> Pause
                                 </button>
-                            ) : (
+                            ) : streamStatus === 'paused' || isStreamPaused ? (
                                 <button
                                     className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
                                     onClick={(e) => handleControl(e, 'resume')}
@@ -469,7 +468,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                 >
                                     <Play className="w-4 h-4 fill-current" /> Resume
                                 </button>
-                            )}
+                            ) : null}
 
                             <button
                                 className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100 transition-colors"

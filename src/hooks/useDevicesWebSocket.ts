@@ -56,12 +56,26 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
             };
 
             socket.onmessage = (event) => {
+                let msg;
                 try {
-                    const data = JSON.parse(event.data);
-                    handleMessage(data);
-                } catch (e) {
-                    console.error('Failed to parse WS message:', e);
+                    msg = JSON.parse(event.data);
+                } catch {
+                    return;
                 }
+
+                if (!msg || typeof msg !== 'object') return;
+                if (!msg.type) return;
+
+                // MOCK_LOCATION uses msg.payload, broadcasts use msg.data.
+                // We enforce having either payload or data for non-PING messages.
+                if (msg.type !== 'PING' && !msg.payload && !msg.data) {
+                    if (process.env.NODE_ENV !== 'production') {
+                        console.warn('[WS] Ignored malformed message (no payload/data):', msg.type);
+                    }
+                    return;
+                }
+
+                handleMessage(msg);
             };
 
             socket.onclose = (event) => {
@@ -106,68 +120,70 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
             }
         };
 
-        const handleMessage = (payload: any) => {
-            const { event, data } = payload;
+        const handleMessage = (wsMessage: any) => {
+            const { type, payload, data, meta } = wsMessage;
+            // Many broadcast messages use 'data' instead of 'payload'
+            const msgData = payload || data;
 
-            if (event === 'MOCK_LOCATION') {
-                const message = data as WsMockLocationMessage['data'];
-                const meta = payload.meta;
-                const deviceId = message.deviceId || data.deviceId;
+            if (type === 'MOCK_LOCATION') {
+                const deviceId = msgData.deviceId || meta?.deviceId;
                 if (!deviceId) return;
 
                 const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
                 updateLocation(deviceId, {
-                    ...prevLoc, // Merge previous to preserve dwell metadata
-                    lat: message.latitude,
-                    lng: message.longitude,
-                    bearing: message.bearing,
-                    // The backend already sends speed in m/s. UI needs km/h.
-                    speed: message.speed * 3.6,
-                    accuracy: message.accuracy,
-                    state: message.state,
-                    dwellRemainingSeconds: meta?.dwellRemainingSeconds
+                    ...prevLoc,
+                    lat: msgData.lat ?? msgData.latitude,
+                    lng: msgData.lng ?? msgData.longitude,
+                    bearing: msgData.bearing,
+                    speed: (msgData.speed || 0) * 3.6,
+                    accuracy: msgData.accuracy,
+                    state: msgData.state ?? prevLoc?.state,
+                    streamStatus: 'running',
+                    dwellRemainingSeconds: meta?.dwellRemainingSeconds ?? prevLoc?.dwellRemainingSeconds ?? null,
                 });
-            } else if (event === 'DEVICE_ONLINE' || event === 'DEVICE_CONNECTED') {
-                console.log('✅ Device Online:', data);
-                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'ONLINE');
-                useDevicesStore.getState().updateDevice(data.deviceId, {
-                    status: 'ONLINE',
-                    lastSeen: new Date()
-                });
-            } else if (event === 'DEVICE_OFFLINE' || event === 'DEVICE_DISCONNECTED') {
-                console.log('❌ Device Offline:', data);
-                useDevicesStore.getState().updateDeviceStatus(data.deviceId, 'OFFLINE');
-                useDevicesStore.getState().updateDevice(data.deviceId, {
-                    status: 'OFFLINE'
-                });
-            } else if (event === 'STREAM_WAITING_START' || event === 'STREAM_WAITING_TICK' || event === 'STREAM_WAITING_EXTENDED') {
-                const deviceId = data.deviceId;
+            } else if (type === 'DEVICE_ONLINE' || type === 'DEVICE_CONNECTED') {
+                const deviceId = msgData.deviceId;
                 if (!deviceId) return;
-
-                // Directly update the store's location sub-state to force dwell remaining seconds update
-                updateLocation(deviceId, {
-                    ...useDevicesLocationStore.getState().locationsByDeviceId[deviceId],
-                    state: 'WAIT', // ensure it remains WAIT
-                    dwellRemainingSeconds: Math.round((data.remainingMs || data.newRemainingMs || 0) / 1000),
-                    dwellWaypointKind: data.kind || useDevicesLocationStore.getState().locationsByDeviceId[deviceId]?.dwellWaypointKind,
-                    dwellWaypointLabel: data.label || useDevicesLocationStore.getState().locationsByDeviceId[deviceId]?.dwellWaypointLabel,
-                });
-
-            } else if (event === 'STREAM_WAITING_SKIPPED') {
-                const deviceId = data.deviceId;
+                useDevicesStore.getState().updateDeviceStatus(deviceId, 'ONLINE');
+            } else if (type === 'DEVICE_OFFLINE' || type === 'DEVICE_DISCONNECTED') {
+                const deviceId = msgData.deviceId;
                 if (!deviceId) return;
-
+                useDevicesStore.getState().updateDeviceStatus(deviceId, 'OFFLINE');
+            } else if (type === 'STREAM_STARTED' || type === 'STREAM_RESUMED') {
+                const deviceId = msgData.deviceId;
+                if (!deviceId) return;
+                const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
+                updateLocation(deviceId, { ...prevLoc, streamStatus: 'running' });
+            } else if (type === 'STREAM_PAUSED') {
+                const deviceId = msgData.deviceId;
+                if (!deviceId) return;
+                const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
+                updateLocation(deviceId, { ...prevLoc, streamStatus: 'paused', state: 'PAUSED' });
+            } else if (type === 'STREAM_STOPPED') {
+                const deviceId = msgData.deviceId;
+                if (!deviceId) return;
+                const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
+                updateLocation(deviceId, { ...prevLoc, streamStatus: 'stopped', dwellRemainingSeconds: null });
+            } else if (type === 'STREAM_WAITING_START' || type === 'STREAM_WAITING_TICK') {
+                const deviceId = msgData.deviceId;
+                if (!deviceId) return;
+                const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
                 updateLocation(deviceId, {
-                    ...useDevicesLocationStore.getState().locationsByDeviceId[deviceId],
+                    ...prevLoc,
+                    state: 'WAIT',
+                    streamStatus: 'running',
+                    dwellRemainingSeconds: Math.round((msgData.remainingMs || 0) / 1000),
+                });
+            } else if (type === 'STREAM_WAITING_SKIPPED') {
+                const deviceId = msgData.deviceId;
+                if (!deviceId) return;
+                const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
+                updateLocation(deviceId, {
+                    ...prevLoc,
                     state: 'MOVE',
-                    dwellRemainingSeconds: undefined,
-                    dwellWaypointKind: undefined,
-                    dwellWaypointLabel: undefined
+                    streamStatus: 'running',
+                    dwellRemainingSeconds: null,
                 });
-            } else {
-                if (process.env.NODE_ENV === 'development') {
-                    console.log(`[WS Event] ${event}`, data);
-                }
             }
         };
 

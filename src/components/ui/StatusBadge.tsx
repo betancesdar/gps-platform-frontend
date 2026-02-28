@@ -63,6 +63,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
             label: 'Detenido',
             animate: false,
         },
+        WAIT: {
+            color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+            dotColor: 'bg-indigo-500',
+            label: 'Esperando',
+            animate: true,
+        },
         COMPLETED: {
             color: 'bg-purple-100 text-purple-800 border-purple-200',
             dotColor: 'bg-purple-500',

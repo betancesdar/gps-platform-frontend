@@ -55,8 +55,9 @@ export interface DeviceLocationState {
     bearing: number;
     speed: number;
     accuracy: number;
-    state?: 'MOVE' | 'WAIT' | 'PAUSED';
-    dwellRemainingSeconds?: number;
+    state?: string; // 'MOVE' | 'WAIT' | 'PAUSED' | 'IDLE' etc.
+    streamStatus?: 'running' | 'paused' | 'stopped' | null;
+    dwellRemainingSeconds?: number | null;
     dwellWaypointKind?: 'START' | 'STOP' | 'END' | string;
     dwellWaypointLabel?: string;
     updatedAt: number; // timestamp
