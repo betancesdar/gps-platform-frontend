@@ -57,5 +57,7 @@ export interface DeviceLocationState {
     accuracy: number;
     state?: 'MOVE' | 'WAIT' | 'PAUSED';
     dwellRemainingSeconds?: number;
+    dwellWaypointKind?: 'START' | 'STOP' | 'END' | string;
+    dwellWaypointLabel?: string;
     updatedAt: number; // timestamp
 }

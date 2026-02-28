@@ -138,6 +138,13 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                 });
             } else if (action === 'stop') {
                 setStreamInfo(null);
+                setLocalDwellSeconds(null);
+                // Force reset local store so location state doesn't keep showing as WAIT
+                useDevicesLocationStore.getState().updateLocation(device.id, {
+                    ...useDevicesLocationStore.getState().locationsByDeviceId[device.id],
+                    state: 'MOVE',
+                    dwellRemainingSeconds: undefined
+                });
             }
         } catch (err: any) {
             setActionError(`Error: ${err.message}`);
@@ -178,14 +185,22 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
     // Local tick for the countdown without re-rendering everything
     React.useEffect(() => {
-        if (!isStreamWaiting || isStreamPaused || localDwellSeconds === null || localDwellSeconds <= 0) return;
+        let interval: NodeJS.Timeout | null = null;
 
-        const interval = setInterval(() => {
-            setLocalDwellSeconds(prev => (prev && prev > 0 ? prev - 1 : 0));
-        }, 1000);
+        if (isStreamWaiting && !isStreamPaused && localDwellSeconds !== null && localDwellSeconds > 0) {
+            interval = setInterval(() => {
+                setLocalDwellSeconds(prev => {
+                    if (prev && prev > 1) return prev - 1;
+                    clearInterval(interval!); // Stop it immediately when hitting 0
+                    return 0;
+                });
+            }, 1000);
+        }
 
-        return () => clearInterval(interval);
-    }, [isStreamWaiting, isStreamPaused, localDwellSeconds]);
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isStreamWaiting, isStreamPaused, localDwellSeconds === null || localDwellSeconds === 0 ? localDwellSeconds : 'active']);
 
     const activeRouteName = safeRoutes.find(r => r.id === selectedRouteId)?.name || 'Ruta Desconocida';
 
@@ -386,10 +401,22 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                             </span>
                                         )}
                                         {isStreamWaiting && !isStreamPaused && (
-                                            <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1 transition-all">
-                                                <Clock className="w-3 h-3" />
-                                                WAITING: {localDwellSeconds ?? dwellRemaining ?? '--'}s
-                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1 transition-all">
+                                                    <Clock className="w-3 h-3" />
+                                                    WAITING: {localDwellSeconds ?? dwellRemaining ?? '--'}s
+                                                </span>
+                                                {location?.dwellWaypointLabel && (
+                                                    <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold text-[10px] truncate max-w-[80px]" title={location.dwellWaypointLabel}>
+                                                        {location.dwellWaypointLabel}
+                                                    </span>
+                                                )}
+                                                {location?.dwellWaypointKind && (
+                                                    <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded border border-gray-200 font-bold text-[9px] uppercase">
+                                                        {location.dwellWaypointKind}
+                                                    </span>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 )}

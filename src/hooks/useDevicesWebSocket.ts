@@ -146,7 +146,9 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 updateLocation(deviceId, {
                     ...useDevicesLocationStore.getState().locationsByDeviceId[deviceId],
                     state: 'WAIT', // ensure it remains WAIT
-                    dwellRemainingSeconds: Math.round((data.remainingMs || data.newRemainingMs || 0) / 1000)
+                    dwellRemainingSeconds: Math.round((data.remainingMs || data.newRemainingMs || 0) / 1000),
+                    dwellWaypointKind: data.kind || useDevicesLocationStore.getState().locationsByDeviceId[deviceId]?.dwellWaypointKind,
+                    dwellWaypointLabel: data.label || useDevicesLocationStore.getState().locationsByDeviceId[deviceId]?.dwellWaypointLabel,
                 });
 
             } else if (event === 'STREAM_WAITING_SKIPPED') {
@@ -156,7 +158,9 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 updateLocation(deviceId, {
                     ...useDevicesLocationStore.getState().locationsByDeviceId[deviceId],
                     state: 'MOVE',
-                    dwellRemainingSeconds: undefined
+                    dwellRemainingSeconds: undefined,
+                    dwellWaypointKind: undefined,
+                    dwellWaypointLabel: undefined
                 });
             } else {
                 if (process.env.NODE_ENV === 'development') {
