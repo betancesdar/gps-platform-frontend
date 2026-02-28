@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { DeviceCard } from './DeviceCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,23 +11,9 @@ export const DeviceList: React.FC = () => {
     const selectedDeviceId = useDevicesStore((state) => state.selectedDeviceId);
     const setSelectedDevice = useDevicesStore((state) => state.setSelectedDevice);
 
-    const userInitiatedSelectionRef = useRef(false);
-
     const handleSelectDevice = (id: string) => {
-        userInitiatedSelectionRef.current = true;
         setSelectedDevice(id);
     };
-
-    useEffect(() => {
-        if (!userInitiatedSelectionRef.current) return;
-        if (selectedDeviceId) {
-            const el = document.getElementById(`device-card-${selectedDeviceId}`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-            userInitiatedSelectionRef.current = false;
-        }
-    }, [selectedDeviceId]);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'ONLINE' | 'OFFLINE'>('all');
@@ -117,10 +103,7 @@ export const DeviceList: React.FC = () => {
             </motion.div>
 
             {/* Device Grid */}
-            <motion.div
-                layout
-                className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8"
-            >
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8">
                 <AnimatePresence mode='popLayout'>
                     {filteredDevices.length > 0 ? (
                         filteredDevices.map((device) => (
@@ -158,7 +141,7 @@ export const DeviceList: React.FC = () => {
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </motion.div>
+            </div>
         </div>
     );
 };

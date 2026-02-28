@@ -326,15 +326,13 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
 
                     <div className="pl-8 relative">
                         <div className="absolute left-3.5 top-0 bottom-6 w-0.5 bg-gray-200 z-0"></div>
-                        <Button
+                        <button
                             type="button"
-                            variant="secondary"
-                            size="sm"
                             onClick={addStop}
-                            className="w-full text-xs border-dashed border-2 py-3 text-gray-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-all z-10 relative bg-white"
+                            className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 z-10 relative transition-all bg-blue-50 border-2 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-400 hover:shadow-sm"
                         >
                             <Icons.Plus /> Add Intermediate Stop
-                        </Button>
+                        </button>
                     </div>
 
                     <WaypointRow

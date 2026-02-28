@@ -98,9 +98,6 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
                 };
             });
 
-            // Reconciliation
-            get().fetchRoutes().catch(() => { });
-
             return { success: true };
         } catch (error: any) {
             console.error('Failed to delete route:', error);
