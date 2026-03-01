@@ -39,9 +39,7 @@ export default function LiveTrackingPage() {
             if (!isAuthenticated) return;
 
             try {
-                // Only show loading spinner on first load if we don't have devices
                 if (devices.length === 0) setLoading(true);
-
                 const data = await devicesService.getDevices();
                 setDevices(data);
             } catch (error) {
@@ -51,13 +49,11 @@ export default function LiveTrackingPage() {
             }
         };
 
+        // Load once on auth, then rely on WebSocket for live updates
         loadDevices();
 
-        // Poll every 15 seconds to reconcile state
-        const intervalId = setInterval(loadDevices, 15000);
-
-        return () => clearInterval(intervalId);
-    }, [isAuthenticated, setDevices, setLoading, devices.length]);
+        // No polling: WebSocket handles real-time state updates
+    }, [isAuthenticated, setDevices, setLoading]);
 
     if (authLoading) {
         return (
