@@ -47,15 +47,14 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
         const devicesById = devices.reduce((acc, dev) => {
             const prev = prevDevicesById[dev.id];
             if (prev) {
-                // MERGE: Preserve runtime overrides like EXECUTING if backend returned ONLINE
-                const preservedStatus = (prev.status === 'EXECUTING' && dev.status === 'ONLINE')
-                    ? 'EXECUTING'
-                    : dev.status;
-
+                // MERGE: Always respect the API status (ONLINE/OFFLINE). 
+                // EXECUTING is set by WS/stream actions only, never by API response.
+                // Preserve WS-only runtime fields that the API does not carry.
                 acc[dev.id] = {
                     ...dev,
-                    status: preservedStatus,
-                    // Blindaje solicitado por Prompt (merge runtime fields invisibles al API)
+                    // API status is the source of truth here
+                    status: dev.status,
+                    // Blindaje de campos runtime que vienen por WS, invisibles al API
                     isConnected: (prev as any).isConnected ?? (dev as any).isConnected,
                     streamStatus: (prev as any).streamStatus ?? (dev as any).streamStatus,
                     streamState: (prev as any).streamState ?? (dev as any).streamState,
@@ -103,15 +102,8 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
         set((state) => {
             const current = state.devicesById[deviceId];
             if (!current) return state;
-
-            // Protect EXECUTING status from being downgraded to ONLINE by generic WS pings
-            const newStatus = (current.status === 'EXECUTING' && status === 'ONLINE')
-                ? 'EXECUTING'
-                : status;
-
-            if (current.status === newStatus) {
-                // Return early if there's no visible change, but update lastSeen optionally?
-                // The prompt says "preserve state", so we can just update lastSeen
+            if (current.status === status) {
+                // Just update lastSeen on heartbeat without triggering full re-render
                 return {
                     devicesById: {
                         ...state.devicesById,
@@ -119,11 +111,10 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
                     }
                 };
             }
-
             return {
                 devicesById: {
                     ...state.devicesById,
-                    [deviceId]: { ...current, status: newStatus, lastSeen: new Date() }
+                    [deviceId]: { ...current, status, lastSeen: new Date() }
                 }
             };
         }),
