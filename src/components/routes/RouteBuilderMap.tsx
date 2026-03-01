@@ -42,7 +42,7 @@ interface RouteBuilderMapProps {
 const MapEvents = ({ onClick, selectingMode }: { onClick?: (lat: number, lng: number) => void, selectingMode: any }) => {
     const map = useMapEvents({
         click(e) {
-            if (onClick && selectingMode) {
+            if (onClick && selectingMode !== null && selectingMode !== undefined) {
                 onClick(e.latlng.lat, e.latlng.lng);
             }
         },
@@ -50,7 +50,7 @@ const MapEvents = ({ onClick, selectingMode }: { onClick?: (lat: number, lng: nu
 
     // Change cursor based on mode
     useEffect(() => {
-        if (selectingMode) {
+        if (selectingMode !== null && selectingMode !== undefined) {
             map.getContainer().style.cursor = 'crosshair';
         } else {
             map.getContainer().style.cursor = 'grab';

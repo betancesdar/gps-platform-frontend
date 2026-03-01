@@ -67,9 +67,6 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     } | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
 
-    // Dynamic Live Local Countdown State for Waits
-    const [localDwellSeconds, setLocalDwellSeconds] = useState<number | null>(null);
-
     const routeOptions = React.useMemo(() => safeRoutes.map(r => ({
         id: r.id,
         label: `${r.name} (${r.pointCount || (r as any).totalPoints || (r as any).pointsCount || 0} pts)`
@@ -138,7 +135,6 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                 });
             } else if (action === 'stop') {
                 setStreamInfo(null);
-                setLocalDwellSeconds(null);
                 // Force reset local store so location state doesn't keep showing as WAIT
                 useDevicesLocationStore.getState().updateLocation(device.id, {
                     ...useDevicesLocationStore.getState().locationsByDeviceId[device.id],
@@ -185,32 +181,6 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         else if (streamStatus === 'paused') displayBadge = 'PAUSED';
         else if (streamStatus === 'stopped') displayBadge = 'STOPPED';
     }
-
-    // Sync the local countdown ONLY from WebSocket updates
-    React.useEffect(() => {
-        if (isStreamWaiting && dwellRemaining !== null) {
-            setLocalDwellSeconds(dwellRemaining);
-        } else if (!isStreamWaiting) {
-            setLocalDwellSeconds(null);
-        }
-    }, [isStreamWaiting, dwellRemaining]);
-
-    // Local tick for the countdown without re-rendering everything
-    React.useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
-        if (isStreamWaiting && !isStreamPaused && localDwellSeconds !== null && localDwellSeconds > 0) {
-            interval = setInterval(() => {
-                setLocalDwellSeconds(prev => {
-                    if (prev && prev > 1) return prev - 1;
-                    clearInterval(interval!); // Stop it immediately when hitting 0
-                    return 0;
-                });
-            }, 1000);
-        }
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [isStreamWaiting, isStreamPaused, localDwellSeconds === null || localDwellSeconds === 0 ? localDwellSeconds : 'active']);
 
     const activeRouteName = safeRoutes.find(r => r.id === selectedRouteId)?.name || 'Ruta Desconocida';
 
@@ -412,7 +382,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                     <div className="flex items-center gap-1.5">
                                         <span className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1 transition-all">
                                             <Clock className="w-3 h-3" />
-                                            Stop: {localDwellSeconds ?? dwellRemaining ?? 'WAIT'}
+                                            Stop: {dwellRemaining ?? 'WAIT'}
                                         </span>
                                         {location?.dwellWaypointLabel && (
                                             <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold text-[10px] truncate max-w-[80px]" title={location.dwellWaypointLabel}>

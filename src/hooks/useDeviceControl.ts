@@ -29,7 +29,7 @@ export const useDeviceControl = () => {
     const updateLocation = useDevicesLocationStore((state) => state.updateLocation);
     const { pendingActions, setPending } = useDeviceControlStore();
 
-    const isDevicePending = (deviceId: string) => !!pendingActions[deviceId];
+    const isDevicePending = (deviceId: string) => !!useDeviceControlStore.getState().pendingActions[deviceId];
 
     const syncRealStatus = async (deviceId: string) => {
         try {
@@ -161,6 +161,7 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
+            await syncRealStatus(deviceId);
             setPending(deviceId, false);
         }
     };
@@ -177,6 +178,7 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
+            await syncRealStatus(deviceId);
             setPending(deviceId, false);
         }
     };

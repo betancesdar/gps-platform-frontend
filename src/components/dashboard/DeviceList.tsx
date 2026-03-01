@@ -8,6 +8,7 @@ import { Search, Filter, Smartphone, WifiOff, Activity } from 'lucide-react';
 
 export const DeviceList: React.FC = () => {
     const devices = useDevicesStore((state) => state.devices);
+    const devicesById = useDevicesStore((state) => state.devicesById);
     const selectedDeviceId = useDevicesStore((state) => state.selectedDeviceId);
     const setSelectedDevice = useDevicesStore((state) => state.setSelectedDevice);
 
@@ -36,17 +37,14 @@ export const DeviceList: React.FC = () => {
                 deviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 deviceId.toLowerCase().includes(searchQuery.toLowerCase());
 
+            const liveDevice = devicesById[deviceId] || device;
+
             const matchesStatus =
-                statusFilter === 'all' || device.status === statusFilter;
+                statusFilter === 'all' || liveDevice.status === statusFilter;
 
             return matchesSearch && matchesStatus;
-        }).sort((a, b) => {
-            // Sort: ONLINE/EXECUTING first, then OFFLINE
-            const scoreA = (a.status === 'ONLINE' || a.status === 'EXECUTING') ? 1 : 0;
-            const scoreB = (b.status === 'ONLINE' || b.status === 'EXECUTING') ? 1 : 0;
-            return scoreB - scoreA;
         });
-    }, [safeDevices, searchQuery, statusFilter]);
+    }, [safeDevices, devicesById, searchQuery, statusFilter]);
 
     return (
         <div className="space-y-6">
@@ -104,43 +102,36 @@ export const DeviceList: React.FC = () => {
 
             {/* Device Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8">
-                <AnimatePresence mode='popLayout'>
-                    {filteredDevices.length > 0 ? (
-                        filteredDevices.map((device) => (
-                            <DeviceCard
-                                key={device.id}
-                                deviceId={device.id}
-                                onSelect={handleSelectDevice}
-                                isSelected={selectedDeviceId === device.id}
-                            />
-                        ))
-                    ) : (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="col-span-full py-12 flex flex-col items-center justify-center text-center glass rounded-3xl border-dashed border-2 border-gray-200"
-                        >
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <Smartphone className="w-8 h-8 text-gray-300" />
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900">No matching devices found</h3>
-                            <p className="text-gray-500 mt-1 max-w-sm mx-auto">
-                                {searchQuery
-                                    ? `We couldn't find any device matching "${searchQuery}"`
-                                    : "Waiting for devices to connect..."}
-                            </p>
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="mt-4 text-blue-600 font-medium hover:text-blue-700 hover:underline"
-                                >
-                                    Clear search
-                                </button>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {filteredDevices.length > 0 ? (
+                    filteredDevices.map((device) => (
+                        <DeviceCard
+                            key={device.id}
+                            deviceId={device.id}
+                            onSelect={handleSelectDevice}
+                            isSelected={selectedDeviceId === device.id}
+                        />
+                    ))
+                ) : (
+                    <div className="col-span-full py-12 flex flex-col items-center justify-center text-center glass rounded-3xl border-dashed border-2 border-gray-200">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                            <Smartphone className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900">No matching devices found</h3>
+                        <p className="text-gray-500 mt-1 max-w-sm mx-auto">
+                            {searchQuery
+                                ? `We couldn't find any device matching "${searchQuery}"`
+                                : "Waiting for devices to connect..."}
+                        </p>
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="mt-4 text-blue-600 font-medium hover:text-blue-700 hover:underline"
+                            >
+                                Clear search
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
