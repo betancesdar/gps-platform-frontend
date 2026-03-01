@@ -50,11 +50,8 @@ export const ControlPanel: React.FC = () => {
         }
     };
 
-    const StatCard = ({ label, value, icon: Icon, color, delay }: any) => (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, duration: 0.4 }}
+    const StatCard = ({ label, value, icon: Icon, color }: any) => (
+        <div
             className="flex-1 min-w-[140px] p-4 rounded-2xl glass-card border border-white/50 relative overflow-hidden group hover:bg-white/90 transition-all"
         >
             <div className={`absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
@@ -69,14 +66,12 @@ export const ControlPanel: React.FC = () => {
                     {label}
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 
     return (
         <>
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
+            <div
                 className="glass rounded-3xl p-6 shadow-xl backdrop-blur-xl relative overflow-hidden"
             >
                 {/* Ambient Background Glow */}
@@ -114,28 +109,24 @@ export const ControlPanel: React.FC = () => {
                             value={onlineCount}
                             icon={Activity}
                             color="text-green-600"
-                            delay={0.1}
                         />
                         <StatCard
                             label="Running"
                             value={executingCount}
                             icon={Smartphone}
                             color="text-blue-600"
-                            delay={0.2}
                         />
                         <StatCard
                             label="Offline"
                             value={offlineCount}
                             icon={WifiOff}
                             color="text-gray-400"
-                            delay={0.3}
                         />
                         <StatCard
                             label="Routes"
                             value={safeRoutes.length}
                             icon={MapIcon}
                             color="text-purple-600"
-                            delay={0.4}
                         />
                     </div>
 
@@ -183,7 +174,7 @@ export const ControlPanel: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </motion.div>
+            </div>
 
             <EnrollDeviceModal isOpen={isEnrollOpen} onClose={() => setIsEnrollOpen(false)} />
         </>
