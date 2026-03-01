@@ -12,22 +12,21 @@
 }
 
 /* ===== SCROLLBAR IMPROVEMENTS ===== */
-/* Single scrollbar — body is the only scrollable container */
-html {
+/* Single scrollbar — #app-scroll is the only scrollable container */
+html,
+body {
   height: 100%;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: system-ui, -apple-system, sans-serif;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
 }
+
 
 /* Custom Scrollbar Styling - Webkit (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
@@ -235,17 +234,25 @@ body {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 /* ===== ADVANCED ANIMATIONS ===== */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 .animate-float {
@@ -258,7 +265,7 @@ body {
 }
 
 .bg-grid-pattern {
-  background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
   background-size: 20px 20px;
 }

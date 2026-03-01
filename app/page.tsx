@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
   return (
     <SocketProvider>
-      <div id="app-scroll" className="bg-[#f3f4f6] relative overflow-x-hidden overflow-y-auto" style={{ minHeight: '100%' }}>
+      <div id="app-scroll" className="bg-[#f3f4f6] relative overflow-x-hidden overflow-y-auto h-screen w-full">
         {/* Abstract Background Shapes */}
         <div className="fixed inset-0 pointer-events-none z-0">
           <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2"></div>
