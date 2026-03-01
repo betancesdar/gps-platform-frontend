@@ -1,16 +1,28 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { DeviceCard } from './DeviceCard';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, Smartphone, WifiOff, Activity } from 'lucide-react';
 
 export const DeviceList: React.FC = () => {
-    const devices = useDevicesStore((state) => state.devices);
+    // Subscribe only to the devicesById map — individual DeviceCard components subscribe to their own slice.
+    // This avoids full-array reference changes every time a single device status updates.
     const devicesById = useDevicesStore((state) => state.devicesById);
     const selectedDeviceId = useDevicesStore((state) => state.selectedDeviceId);
     const setSelectedDevice = useDevicesStore((state) => state.setSelectedDevice);
+
+    // Stable insertion order: new IDs get appended, existing IDs never move.
+    const deviceOrderRef = useRef<string[]>([]);
+    useMemo(() => {
+        const known = new Set(deviceOrderRef.current);
+        const incoming = Object.keys(devicesById);
+        incoming.forEach(id => {
+            if (!known.has(id)) deviceOrderRef.current.push(id);
+        });
+        // Remove IDs that no longer exist
+        deviceOrderRef.current = deviceOrderRef.current.filter(id => devicesById[id]);
+    }, [devicesById]);
 
     const handleSelectDevice = (id: string) => {
         setSelectedDevice(id);
@@ -19,41 +31,31 @@ export const DeviceList: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'ONLINE' | 'OFFLINE'>('all');
 
-    // Safely get devices array
-    const safeDevices = useMemo(() => {
-        if (!Array.isArray(devices)) return [];
-        return devices;
-    }, [devices]);
+    // Safe list — all known device IDs (stable order)
+    const allIds = deviceOrderRef.current;
 
-    // Filter devices
-    const filteredDevices = useMemo(() => {
-        return safeDevices.filter((device) => {
+    // Filtered IDs (no sort — order is insertion-stable)
+    const filteredIds = useMemo(() => {
+        return allIds.filter((id) => {
+            const device = devicesById[id];
             if (!device) return false;
 
             const deviceName = device.name || device.id || '';
-            const deviceId = device.id || '';
-
             const matchesSearch =
                 deviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                deviceId.toLowerCase().includes(searchQuery.toLowerCase());
-
-            const liveDevice = devicesById[deviceId] || device;
+                id.toLowerCase().includes(searchQuery.toLowerCase());
 
             const matchesStatus =
-                statusFilter === 'all' || liveDevice.status === statusFilter;
+                statusFilter === 'all' || device.status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
-    }, [safeDevices, devicesById, searchQuery, statusFilter]);
+    }, [allIds, devicesById, searchQuery, statusFilter]);
 
     return (
         <div className="space-y-6">
             {/* Filters Bar */}
-            <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between"
-            >
+            <div className="glass rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
                 {/* Search */}
                 <div className="relative w-full md:max-w-md group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -91,24 +93,24 @@ export const DeviceList: React.FC = () => {
                             <span className={`ml-1.5 py-0.5 px-2 rounded-md text-[10px] ${statusFilter === filter.id ? 'bg-blue-50 text-blue-600' : 'bg-gray-200 text-gray-500'
                                 }`}>
                                 {filter.id === 'all'
-                                    ? safeDevices.length
-                                    : safeDevices.filter(d => d.status === filter.id).length
+                                    ? allIds.length
+                                    : allIds.filter(id => devicesById[id]?.status === filter.id).length
                                 }
                             </span>
                         </button>
                     ))}
                 </div>
-            </motion.div>
+            </div>
 
             {/* Device Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8">
-                {filteredDevices.length > 0 ? (
-                    filteredDevices.map((device) => (
+                {filteredIds.length > 0 ? (
+                    filteredIds.map((id) => (
                         <DeviceCard
-                            key={device.id}
-                            deviceId={device.id}
+                            key={id}
+                            deviceId={id}
                             onSelect={handleSelectDevice}
-                            isSelected={selectedDeviceId === device.id}
+                            isSelected={selectedDeviceId === id}
                         />
                     ))
                 ) : (

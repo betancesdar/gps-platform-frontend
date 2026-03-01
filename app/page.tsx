@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
   return (
     <SocketProvider>
-      <div className="min-h-screen bg-[#f3f4f6] relative overflow-x-hidden">
+      <div id="app-scroll" className="bg-[#f3f4f6] relative overflow-x-hidden overflow-y-auto" style={{ minHeight: '100%' }}>
         {/* Abstract Background Shapes */}
         <div className="fixed inset-0 pointer-events-none z-0">
           <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2"></div>
@@ -184,12 +184,7 @@ export default function DashboardPage() {
 
         {/* Main Content */}
         <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-8"
-          >
+          <div className="space-y-8">
             {/* Control Panel */}
             <ControlPanel />
 
@@ -201,7 +196,7 @@ export default function DashboardPage() {
 
               <DeviceList />
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
     </SocketProvider>
