@@ -28,8 +28,8 @@ export const useDeviceControl = () => {
     const updateDeviceStatus = useDevicesStore((state) => state.updateDeviceStatus);
     const updateLocation = useDevicesLocationStore((state) => state.updateLocation);
     const { pendingActions, setPending } = useDeviceControlStore();
-
-    const isDevicePending = (deviceId: string) => !!useDeviceControlStore.getState().pendingActions[deviceId];
+    const isDevicePending = (deviceId: string) => !!pendingActions[deviceId];
+    const isSyncPending = (deviceId: string) => !!useDeviceControlStore.getState().pendingActions[deviceId];
 
     const syncRealStatus = async (deviceId: string) => {
         try {
@@ -64,7 +64,7 @@ export const useDeviceControl = () => {
     const startDevice = async (deviceId: string, routeId: string, speed?: number) => {
         const currentStatus = useDevicesStore.getState().devicesById[deviceId]?.status;
         if (currentStatus === 'EXECUTING') return null;
-        if (isDevicePending(deviceId)) return null;
+        if (isSyncPending(deviceId)) return null;
 
         setPending(deviceId, true);
         setIsLoading(true);
@@ -78,14 +78,14 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            await syncRealStatus(deviceId);
             setPending(deviceId, false);
             setIsLoading(false);
+            try { await syncRealStatus(deviceId); } catch (e) { }
         }
     };
 
     const pauseDevice = async (deviceId: string) => {
-        if (isDevicePending(deviceId)) return;
+        if (isSyncPending(deviceId)) return;
         setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
@@ -97,14 +97,14 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            await syncRealStatus(deviceId);
             setPending(deviceId, false);
             setIsLoading(false);
+            try { await syncRealStatus(deviceId); } catch (e) { }
         }
     };
 
     const resumeDevice = async (deviceId: string) => {
-        if (isDevicePending(deviceId)) return;
+        if (isSyncPending(deviceId)) return;
         setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
@@ -116,14 +116,14 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            await syncRealStatus(deviceId);
             setPending(deviceId, false);
             setIsLoading(false);
+            try { await syncRealStatus(deviceId); } catch (e) { }
         }
     };
 
     const stopDevice = async (deviceId: string) => {
-        if (isDevicePending(deviceId)) return;
+        if (isSyncPending(deviceId)) return;
         setPending(deviceId, true);
         setIsLoading(true);
         setError(null);
@@ -135,9 +135,9 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            await syncRealStatus(deviceId);
             setPending(deviceId, false);
             setIsLoading(false);
+            try { await syncRealStatus(deviceId); } catch (e) { }
         }
     };
 
@@ -150,7 +150,7 @@ export const useDeviceControl = () => {
     };
 
     const skipDwell = async (deviceId: string) => {
-        if (isDevicePending(deviceId)) return;
+        if (isSyncPending(deviceId)) return;
         setPending(deviceId, true);
         setError(null);
         try {
@@ -161,13 +161,13 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            await syncRealStatus(deviceId);
             setPending(deviceId, false);
+            try { await syncRealStatus(deviceId); } catch (e) { }
         }
     };
 
     const extendDwell = async (deviceId: string, seconds: number) => {
-        if (isDevicePending(deviceId)) return;
+        if (isSyncPending(deviceId)) return;
         setPending(deviceId, true);
         setError(null);
         try {
@@ -178,8 +178,8 @@ export const useDeviceControl = () => {
             setError(message);
             throw err;
         } finally {
-            await syncRealStatus(deviceId);
             setPending(deviceId, false);
+            try { await syncRealStatus(deviceId); } catch (e) { }
         }
     };
 
