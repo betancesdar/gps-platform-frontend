@@ -45,6 +45,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
 
             socket.onopen = () => {
                 console.log('✅ Connected to devices WebSocket');
+                useDevicesStore.getState().setWsConnected(true);
                 reconnectAttempts.current = 0;
 
                 // On initial connect/reconnect, silently fetch full state
@@ -79,6 +80,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
             };
 
             socket.onclose = (event) => {
+                useDevicesStore.getState().setWsConnected(false);
                 if (!socketRef.current) return;
                 const maskedUrl = wsUrl.replace(token, token.slice(0, 8) + '…');
                 if (process.env.NODE_ENV !== 'production') {
@@ -96,6 +98,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
             };
 
             socket.onerror = () => {
+                useDevicesStore.getState().setWsConnected(false);
                 // onerror gives no useful details; onclose fires next with code+reason.
                 if (process.env.NODE_ENV !== 'production') {
                     const maskedUrl = wsUrl.replace(token, token.slice(0, 8) + '…');
@@ -141,6 +144,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     accuracy: msgData.accuracy,
                     state: msgData.state ?? prevLoc?.state,
                     streamStatus: 'running',
+                    wsLive: true,
                     dwellRemainingSeconds: meta?.dwellRemainingSeconds ?? prevLoc?.dwellRemainingSeconds ?? null,
                 });
             } else if (type === 'DEVICE_ONLINE' || type === 'DEVICE_CONNECTED') {
@@ -155,17 +159,17 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                 const deviceId = msgData.deviceId;
                 if (!deviceId) return;
                 const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
-                updateLocation(deviceId, { ...prevLoc, streamStatus: 'running' });
+                updateLocation(deviceId, { ...prevLoc, streamStatus: 'running', wsLive: true });
             } else if (type === 'STREAM_PAUSED') {
                 const deviceId = msgData.deviceId;
                 if (!deviceId) return;
                 const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
-                updateLocation(deviceId, { ...prevLoc, streamStatus: 'paused', state: 'PAUSED' });
+                updateLocation(deviceId, { ...prevLoc, streamStatus: 'paused', state: 'PAUSED', wsLive: true });
             } else if (type === 'STREAM_STOPPED') {
                 const deviceId = msgData.deviceId;
                 if (!deviceId) return;
                 const prevLoc = useDevicesLocationStore.getState().locationsByDeviceId[deviceId];
-                updateLocation(deviceId, { ...prevLoc, streamStatus: 'stopped', dwellRemainingSeconds: null });
+                updateLocation(deviceId, { ...prevLoc, streamStatus: 'stopped', dwellRemainingSeconds: null, wsLive: false });
             } else if (type === 'STREAM_WAITING_START' || type === 'STREAM_WAITING_TICK') {
                 const deviceId = msgData.deviceId;
                 if (!deviceId) return;
@@ -174,6 +178,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     ...prevLoc,
                     state: 'WAIT',
                     streamStatus: 'running',
+                    wsLive: true,
                     dwellRemainingSeconds: Math.round((msgData.remainingMs || 0) / 1000),
                 });
             } else if (type === 'STREAM_WAITING_SKIPPED') {
@@ -184,6 +189,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     ...prevLoc,
                     state: 'MOVE',
                     streamStatus: 'running',
+                    wsLive: true,
                     dwellRemainingSeconds: null,
                 });
             }

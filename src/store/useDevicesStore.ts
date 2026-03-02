@@ -14,6 +14,9 @@ interface DevicesState {
     // Route Selection State
     selectedRouteIds: Record<string, string>;
 
+    // Global WebSocket connection status
+    wsConnected: boolean;
+
     // Actions
     setDevices: (devices: Device[]) => void;
     addDevice: (device: Device) => void;
@@ -24,6 +27,7 @@ interface DevicesState {
     setLoading: (isLoading: boolean) => void;
     setError: (error: string | null) => void;
     clearDevices: () => void;
+    setWsConnected: (connected: boolean) => void;
 
     // New Actions
     toggleShowOfflineHistory: () => void;
@@ -41,6 +45,7 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
     error: null,
     showOfflineHistory: false, // Default: Hide offline history (filter active only)
     selectedRouteIds: {},
+    wsConnected: false,
 
     setDevices: (devices) => {
         const prevDevicesById = get().devicesById;
@@ -120,6 +125,8 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
         }),
 
     setSelectedDevice: (deviceId) => set({ selectedDeviceId: deviceId }),
+
+    setWsConnected: (connected: boolean) => set({ wsConnected: connected }),
 
     setLoading: (isLoading) => set({ isLoading }),
 

@@ -42,6 +42,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     isSelected = false,
 }) => {
     const device = useDevicesStore(state => state.devicesById[deviceId]);
+    const wsConnected = useDevicesStore(state => state.wsConnected);
     const location = useDevicesLocationStore(state => state.locationsByDeviceId[deviceId]);
     const { startDevice, pauseDevice, resumeDevice, stopDevice, skipDwell, extendDwell, isLoading, isDevicePending } = useDeviceControl();
 
@@ -372,7 +373,14 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                                 </div>
                             )}
                             <div className="text-xs font-medium text-gray-500 mt-1 uppercase flex justify-between items-center">
-                                <span>Engine: {streamInfo?.engineMode || 'distance'}</span>
+                                <span className="flex items-center gap-2">
+                                    Engine: {streamInfo?.engineMode || 'distance'}
+                                    {!wsConnected && (
+                                        <span className="bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded flex items-center gap-1 font-bold text-[9px] animate-pulse normal-case">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Reconectando...
+                                        </span>
+                                    )}
+                                </span>
                                 {isStreamPaused && (
                                     <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
                                         PAUSED

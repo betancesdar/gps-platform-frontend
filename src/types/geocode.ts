@@ -57,6 +57,7 @@ export interface DeviceLocationState {
     accuracy: number;
     state?: string; // 'MOVE' | 'WAIT' | 'PAUSED' | 'IDLE' etc.
     streamStatus?: 'running' | 'paused' | 'stopped' | null;
+    wsLive?: boolean;
     dwellRemainingSeconds?: number | null;
     dwellWaypointKind?: 'START' | 'STOP' | 'END' | string;
     dwellWaypointLabel?: string;
