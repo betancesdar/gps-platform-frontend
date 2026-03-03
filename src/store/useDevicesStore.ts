@@ -48,30 +48,33 @@ export const useDevicesStore = create<DevicesState>((set, get) => ({
     wsConnected: false,
 
     setDevices: (devices) => {
-        const prevDevicesById = get().devicesById;
-        const devicesById = devices.reduce((acc, dev) => {
-            const prev = prevDevicesById[dev.id];
-            if (prev) {
-                // MERGE: Always respect the API status (ONLINE/OFFLINE). 
-                // EXECUTING is set by WS/stream actions only, never by API response.
-                // Preserve WS-only runtime fields that the API does not carry.
-                acc[dev.id] = {
-                    ...dev,
-                    // API status is the source of truth here
-                    status: dev.status,
-                    // Blindaje de campos runtime que vienen por WS, invisibles al API
-                    isConnected: (prev as any).isConnected ?? (dev as any).isConnected,
-                    streamStatus: (prev as any).streamStatus ?? (dev as any).streamStatus,
-                    streamState: (prev as any).streamState ?? (dev as any).streamState,
-                    dwellRemainingSeconds: (prev as any).dwellRemainingSeconds ?? (dev as any).dwellRemainingSeconds,
-                    lastStreamTs: (prev as any).lastStreamTs ?? (dev as any).lastStreamTs
-                } as Device;
-            } else {
-                acc[dev.id] = dev;
-            }
-            return acc;
-        }, {} as Record<string, Device>);
-        set({ devices: Object.values(devicesById), devicesById });
+        set((state) => {
+            const prevDevicesById = state.devicesById;
+            const newDevicesById = { ...prevDevicesById }; // Start with existing
+
+            devices.forEach((dev) => {
+                const prev = prevDevicesById[dev.id];
+                if (prev) {
+                    newDevicesById[dev.id] = {
+                        ...prev, // Keep ALL existing fields
+                        ...dev,  // Overwrite with API fields
+                        status: dev.status,
+                        isConnected: (prev as any).isConnected ?? (dev as any).isConnected,
+                        streamStatus: (prev as any).streamStatus ?? (dev as any).streamStatus,
+                        streamState: (prev as any).streamState ?? (dev as any).streamState,
+                        dwellRemainingSeconds: (prev as any).dwellRemainingSeconds ?? (dev as any).dwellRemainingSeconds,
+                        lastStreamTs: (prev as any).lastStreamTs ?? (dev as any).lastStreamTs
+                    } as Device;
+                } else {
+                    newDevicesById[dev.id] = dev;
+                }
+            });
+
+            return {
+                devicesById: newDevicesById,
+                devices: Object.values(newDevicesById)
+            };
+        });
     },
 
     addDevice: (device) =>
