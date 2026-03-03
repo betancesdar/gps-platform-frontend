@@ -20,6 +20,9 @@ export interface BackendDevice {
         id: string;
         name: string;
     };
+    streamStatus?: 'running' | 'paused' | 'stopped';
+    streamState?: 'MOVE' | 'WAIT' | 'PAUSED' | 'FINISHED';
+    dwellRemainingSeconds?: number | null;
 }
 
 // Frontend device format (mapped)
@@ -36,6 +39,9 @@ export interface Device {
         id: string;
         name: string;
     };
+    streamStatus?: 'running' | 'paused' | 'stopped';
+    streamState?: 'MOVE' | 'WAIT' | 'PAUSED' | 'FINISHED';
+    dwellRemainingSeconds?: number | null;
 }
 
 // Transform backend device to frontend format
@@ -56,6 +62,9 @@ function transformDevice(backendDevice: BackendDevice): Device {
         platform: backendDevice.platform,
         appVersion: backendDevice.appVersion,
         assignedRoute: backendDevice.assignedRoute,
+        streamStatus: backendDevice.streamStatus,
+        streamState: backendDevice.streamState,
+        dwellRemainingSeconds: backendDevice.dwellRemainingSeconds,
     };
 }
 

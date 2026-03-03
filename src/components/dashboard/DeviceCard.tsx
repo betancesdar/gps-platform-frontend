@@ -167,9 +167,9 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const isOnline = device.status === 'ONLINE';
     const isOffline = device.status === 'OFFLINE';
 
-    const streamStatus = location?.streamStatus || 'stopped';
-    const streamState = location?.state || 'MOVE';
-    const dwellRemaining = location?.dwellRemainingSeconds ?? null;
+    const streamStatus = location?.streamStatus || device.streamStatus || 'stopped';
+    const streamState = location?.state || device.streamState || 'MOVE';
+    const dwellRemaining = location?.dwellRemainingSeconds ?? device.dwellRemainingSeconds ?? null;
 
     // UI calculation for stream mode logic from SSOT
     const isStreamPaused = streamStatus === 'paused' || streamState === 'PAUSED';

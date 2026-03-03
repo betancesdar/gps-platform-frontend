@@ -6,6 +6,9 @@ export interface Device {
     lastSeen: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    streamStatus?: 'running' | 'paused' | 'stopped';
+    streamState?: 'MOVE' | 'WAIT' | 'PAUSED' | 'FINISHED';
+    dwellRemainingSeconds?: number | null;
 }
 
 export interface Position {
