@@ -28,8 +28,6 @@ export const RouteList: React.FC<RouteListProps> = ({
     const inFlightDeleteByRouteId = useRoutesStore((state) => state.inFlightDeleteByRouteId);
 
     const [search, setSearch] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 6; // Show 6 per page to keep the list from growing too tall
 
     const handleSelect = (routeId: string) => {
         setSelectedRoute(routeId === selectedRouteId ? null : routeId);
@@ -47,17 +45,7 @@ export const RouteList: React.FC<RouteListProps> = ({
         );
     }, [routes, search]);
 
-    // Reset to page 1 when search changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [search]);
 
-    // Paginate filtered routes
-    const totalPages = Math.ceil(filteredRoutes.length / itemsPerPage);
-    const paginatedRoutes = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredRoutes.slice(start, start + itemsPerPage);
-    }, [filteredRoutes, currentPage]);
 
     if (!Array.isArray(routes) || routes.length === 0) {
         return (
@@ -94,8 +82,8 @@ export const RouteList: React.FC<RouteListProps> = ({
                     No se encontraron rutas que coincidan con <span className="font-bold text-gray-700">"{search}"</span>
                 </motion.div>
             ) : (
-                <div className="space-y-3">
-                    {paginatedRoutes.map((route, index) => {
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {filteredRoutes.map((route, index) => {
                         // Get route ID safely - backend uses routeId, frontend might use id
                         const routeId = route.id || (route as any).routeId || `route-${index}`;
 
@@ -214,33 +202,6 @@ export const RouteList: React.FC<RouteListProps> = ({
                             </motion.div>
                         );
                     })}
-                </div>
-            )}
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex justify-between items-center pt-2 mt-4 px-1">
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="px-4"
-                    >
-                        Anterior
-                    </Button>
-                    <span className="text-xs font-semibold text-gray-500">
-                        Página {currentPage} de {totalPages}
-                    </span>
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="px-4"
-                    >
-                        Siguiente
-                    </Button>
                 </div>
             )}
         </div>

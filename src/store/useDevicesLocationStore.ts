@@ -39,15 +39,17 @@ export const useDevicesLocationStore = create<DevicesLocationState>((set) => ({
     clearStaleLocations: () =>
         set((state) => {
             const now = Date.now();
-            const filtered: Record<string, DeviceLocationState> = {};
+            const updated: Record<string, DeviceLocationState> = {};
 
             Object.entries(state.locationsByDeviceId).forEach(([deviceId, location]) => {
-                if (now - location.updatedAt <= STALE_THRESHOLD_MS) {
-                    filtered[deviceId] = location;
+                if (now - location.updatedAt > STALE_THRESHOLD_MS && location.wsLive !== false) {
+                    updated[deviceId] = { ...location, wsLive: false };
+                } else {
+                    updated[deviceId] = location;
                 }
             });
 
-            return { locationsByDeviceId: filtered };
+            return { locationsByDeviceId: updated };
         }),
 
     clearAll: () => set({ locationsByDeviceId: {}, selectedDeviceId: null }),
