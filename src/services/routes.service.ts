@@ -67,7 +67,7 @@ export const routesService = {
      * GET /api/routes
      */
     async getRoutes(): Promise<Route[]> {
-        const response = await axiosInstance.get<ApiResponse<BackendRoute[]>>('/routes');
+        const response = await axiosInstance.get<ApiResponse<BackendRoute[]>>('/routes?limit=100');
 
         let backendRoutes: BackendRoute[] = [];
         if (response.data && 'data' in response.data && Array.isArray(response.data.data)) {
