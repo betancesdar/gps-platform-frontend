@@ -73,7 +73,16 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
         label: `${r.name} (${r.pointCount || (r as any).totalPoints || (r as any).pointsCount || 0} pts)`
     })), [safeRoutes]);
 
-    const isExecuting = device.status === 'EXECUTING';
+    const streamStatus = streamInfo?.status || location?.streamStatus || device.streamStatus || 'stopped';
+    const streamState = streamInfo?.state || location?.state || device.streamState || 'MOVE';
+    const dwellRemaining = streamInfo?.dwellRemainingSeconds ?? location?.dwellRemainingSeconds ?? device.dwellRemainingSeconds ?? null;
+
+    // UI calculation for stream mode logic from SSOT
+    const isStreamPaused = streamStatus === 'paused' || streamState === 'PAUSED';
+    const isStreamWaiting = streamStatus === 'running' && streamState === 'WAIT';
+
+    // A device is considered executing if it's explicitly EXECUTING, or if the stream is running/paused
+    const isExecuting = device.status === 'EXECUTING' || streamStatus === 'running' || streamStatus === 'paused';
 
     React.useEffect(() => {
         if (isExecuting) {
@@ -166,14 +175,6 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
     const isOnline = device.status === 'ONLINE';
     const isOffline = device.status === 'OFFLINE';
-
-    const streamStatus = location?.streamStatus || device.streamStatus || 'stopped';
-    const streamState = location?.state || device.streamState || 'MOVE';
-    const dwellRemaining = location?.dwellRemainingSeconds ?? device.dwellRemainingSeconds ?? null;
-
-    // UI calculation for stream mode logic from SSOT
-    const isStreamPaused = streamStatus === 'paused' || streamState === 'PAUSED';
-    const isStreamWaiting = streamStatus === 'running' && streamState === 'WAIT';
 
     let displayBadge: string = device.status;
     if (isExecuting) {
