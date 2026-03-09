@@ -42,6 +42,7 @@ export interface RoutePoint {
     longitude: number;
     elevation?: number;
     waitDuration?: number; // seconds
+    dwellSeconds?: number; // added for V1.5 compatibility
     index: number;
     routeId: string;
 }

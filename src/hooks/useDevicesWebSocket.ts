@@ -145,7 +145,7 @@ export function useDevicesWebSocket(options: UseDevicesWebSocketOptions = {}) {
                     state: msgData.state ?? prevLoc?.state,
                     streamStatus: 'running',
                     wsLive: true,
-                    dwellRemainingSeconds: meta?.dwellRemainingSeconds ?? prevLoc?.dwellRemainingSeconds ?? null,
+                    dwellRemainingSeconds: msgData.state === 'MOVE' ? null : (meta?.dwellRemainingSeconds ?? prevLoc?.dwellRemainingSeconds ?? null),
                 });
             } else if (type === 'DEVICE_ONLINE' || type === 'DEVICE_CONNECTED') {
                 const deviceId = msgData.deviceId;

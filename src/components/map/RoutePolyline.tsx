@@ -67,7 +67,7 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
     // Identify waypoints (points with waitDuration > 0)
     const waypoints = route.points
         .map((point, index) => ({ point, originalIndex: index }))
-        .filter(({ point }) => (point.waitDuration || 0) > 0);
+        .filter(({ point }) => (point.waitDuration || point.dwellSeconds || 0) > 0);
 
     // Get first and last points
     const startPoint = route.points[0];
@@ -100,7 +100,8 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                     if (isEnd && !isCircularRoute) markerColor = '#ef4444'; // red for end
 
                     const label = getWaypointLabel(waypointIndex);
-                    const waitMinutes = ((point.waitDuration || 0) / 60).toFixed(1);
+                    const waitTotal = point.waitDuration || point.dwellSeconds || 0;
+                    const waitMinutes = (waitTotal / 60).toFixed(1);
 
                     return (
                         <Marker
