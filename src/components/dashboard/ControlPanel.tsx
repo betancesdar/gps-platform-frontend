@@ -6,9 +6,9 @@ import { useDevicesStore } from '@/store/useDevicesStore';
 import { useRoutesStore } from '@/store/useRoutesStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { EnrollDeviceModal } from '@/components/devices/EnrollDeviceModal';
-import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { devicesService } from '@/services/devices.service';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
     Plus,
     Trash2,
@@ -28,8 +28,8 @@ export const ControlPanel: React.FC = () => {
 
     // Enroll Modal State
     const [isEnrollOpen, setIsEnrollOpen] = useState(false);
-    const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
     const [isCleaning, setIsCleaning] = useState(false);
+    const router = useRouter();
 
     const safeDevices = Array.isArray(devices) ? devices : [];
     const safeRoutes = Array.isArray(routes) ? routes : [];
@@ -170,7 +170,7 @@ export const ControlPanel: React.FC = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => setIsCreateUserOpen(true)}
+                                    onClick={() => router.push('/users')}
                                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200 transition-all shadow-none"
                                 >
                                     <UserPlus className="w-5 h-5" />
@@ -197,7 +197,6 @@ export const ControlPanel: React.FC = () => {
             </div>
 
             <EnrollDeviceModal isOpen={isEnrollOpen} onClose={() => setIsEnrollOpen(false)} />
-            <CreateUserModal isOpen={isCreateUserOpen} onClose={() => setIsCreateUserOpen(false)} />
         </>
     );
 };
