@@ -8,6 +8,7 @@ import { useDeviceControl } from '@/hooks/useDeviceControl';
 import { useRoutesStore } from '@/store/useRoutesStore';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { useDevicesLocationStore } from '@/store/useDevicesLocationStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { VirtualSelect } from '../ui/VirtualSelect';
 import { streamService } from '@/services/stream.service';
 import dayjs from 'dayjs';
@@ -44,6 +45,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
     const device = useDevicesStore(state => state.devicesById[deviceId]);
     const wsConnected = useDevicesStore(state => state.wsConnected);
     const location = useDevicesLocationStore(state => state.locationsByDeviceId[deviceId]);
+    const user = useAuthStore(state => state.user);
     const { startDevice, pauseDevice, resumeDevice, stopDevice, skipDwell, extendDwell, isLoading, isDevicePending } = useDeviceControl();
 
     // Safety check if device was deleted but list hasn't updated
@@ -252,13 +254,15 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
                     <div className="flex items-center gap-2">
                         {/* Delete Button */}
-                        <button
-                            onClick={handleDelete}
-                            className="p-2.5 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors"
-                            title="Delete Device"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
+                        {user?.role === 'ADMIN' && (
+                            <button
+                                onClick={handleDelete}
+                                className="p-2.5 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors"
+                                title="Delete Device"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
 

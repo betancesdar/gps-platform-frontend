@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { StatusBadge } from '../ui/StatusBadge';
 import { useDevicesStore } from '@/store/useDevicesStore';
 import { useRoutesStore } from '@/store/useRoutesStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { EnrollDeviceModal } from '@/components/devices/EnrollDeviceModal';
+import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { devicesService } from '@/services/devices.service';
 import { motion } from 'framer-motion';
 import {
@@ -15,15 +17,18 @@ import {
     WifiOff,
     Map as MapIcon,
     Server,
-    History
+    History,
+    UserPlus
 } from 'lucide-react';
 
 export const ControlPanel: React.FC = () => {
     const devices = useDevicesStore((state) => state.devices);
     const routes = useRoutesStore((state) => state.routes);
+    const user = useAuthStore((state) => state.user);
 
     // Enroll Modal State
     const [isEnrollOpen, setIsEnrollOpen] = useState(false);
+    const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
     const [isCleaning, setIsCleaning] = useState(false);
 
     const safeDevices = Array.isArray(devices) ? devices : [];
@@ -160,23 +165,39 @@ export const ControlPanel: React.FC = () => {
                                 <span>Enroll</span>
                             </motion.button>
 
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleCleanup}
-                                disabled={isCleaning}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-transparent text-gray-400 font-medium border border-transparent hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-none"
-                                title="Wipe Database"
-                            >
-                                <Trash2 className="w-5 h-5" />
-                                <span className="sm:hidden lg:inline">Wipe</span>
-                            </motion.button>
+
+                            {user?.role === 'ADMIN' && (
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setIsCreateUserOpen(true)}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200 transition-all shadow-none"
+                                >
+                                    <UserPlus className="w-5 h-5" />
+                                    <span className="sm:hidden lg:inline">Users</span>
+                                </motion.button>
+                            )}
+
+                            {user?.role === 'ADMIN' && (
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleCleanup}
+                                    disabled={isCleaning}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-transparent text-gray-400 font-medium border border-transparent hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-none"
+                                    title="Wipe Database"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                    <span className="sm:hidden lg:inline">Wipe</span>
+                                </motion.button>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
             <EnrollDeviceModal isOpen={isEnrollOpen} onClose={() => setIsEnrollOpen(false)} />
+            <CreateUserModal isOpen={isCreateUserOpen} onClose={() => setIsCreateUserOpen(false)} />
         </>
     );
 };

@@ -142,7 +142,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-xs">
                     <p className="font-semibold text-gray-700">{user.name}</p>
-                    <p className="text-gray-400">Admin</p>
+                    <p className="text-gray-400 capitalize">{user.role?.toLowerCase() || 'User'}</p>
                   </div>
                 </div>
               )}
@@ -159,15 +159,17 @@ export default function DashboardPage() {
                 <span className="hidden sm:inline">Refresh</span>
               </motion.button>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => router.push('/routes')}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 border border-gray-200 transition-colors shadow-sm"
-              >
-                <RouteIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">Routes</span>
-              </motion.button>
+              {user?.role === 'ADMIN' && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => router.push('/routes')}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-xl hover:bg-gray-50 border border-gray-200 transition-colors shadow-sm"
+                >
+                  <RouteIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Routes</span>
+                </motion.button>
+              )}
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
