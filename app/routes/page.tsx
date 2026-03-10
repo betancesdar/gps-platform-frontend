@@ -21,7 +21,7 @@ const RoutePreviewPlayer = dynamic(
 
 export default function RoutesPage() {
     const router = useRouter();
-    const { isAuthenticated, isLoading: authLoading, initAuth } = useAuthStore();
+    const { isAuthenticated, isLoading: authLoading, initAuth, user } = useAuthStore();
     const { routes, setRoutes, addRoute, removeRoute, setLoading, inFlightDeleteByRouteId } = useRoutesStore();
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -36,12 +36,16 @@ export default function RoutesPage() {
         initAuth();
     }, [initAuth]);
 
-    // Redirect if not authenticated
+    // Redirect if not authenticated or not admin
     useEffect(() => {
-        if (!authLoading && !isAuthenticated) {
-            router.push('/login');
+        if (!authLoading) {
+            if (!isAuthenticated) {
+                router.push('/login');
+            } else if (user?.role !== 'ADMIN' && user?.role !== 'admin') {
+                router.push('/');
+            }
         }
-    }, [isAuthenticated, authLoading, router]);
+    }, [isAuthenticated, authLoading, router, user]);
 
     // Load routes
     useEffect(() => {
