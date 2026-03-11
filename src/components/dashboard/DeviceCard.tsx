@@ -254,7 +254,7 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
 
                     <div className="flex items-center gap-2">
                         {/* Delete Button */}
-                        {user?.role === 'ADMIN' && (
+                        {(user?.role === 'ADMIN' || user?.role === 'admin') && (
                             <button
                                 onClick={handleDelete}
                                 className="p-2.5 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors"
@@ -408,62 +408,76 @@ const DeviceCardComponent: React.FC<DeviceCardProps> = ({
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 pt-1">
-                            {isStreamWaiting && !isStreamPaused && process.env.NEXT_PUBLIC_ENABLE_SKIP_WAIT !== 'false' && (
+                            {isOffline ? (
+                                <div className="col-span-2 flex flex-col items-center justify-center p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-2 shadow-inner">
+                                    <div className="flex items-center gap-2 text-gray-600 font-bold text-sm select-none">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-gray-400 animate-pulse" />
+                                        Reuniendo Conexión...
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 text-center font-medium leading-tight max-w-[200px]">
+                                        El GPS perdió señal de datos o WiFi. Los controles aparecerán cuando vuelva a conectarse.
+                                    </p>
+                                </div>
+                            ) : (
                                 <>
+                                    {isStreamWaiting && !isStreamPaused && process.env.NEXT_PUBLIC_ENABLE_SKIP_WAIT !== 'false' && (
+                                        <>
+                                            <button
+                                                className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-sm border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    setActionError(null);
+                                                    try { await skipDwell(device.id); }
+                                                    catch (err: any) { setActionError(err.message); }
+                                                }}
+                                                disabled={isPending}
+                                            >
+                                                <Play className="w-4 h-4 fill-current" /> Skip Dwell
+                                            </button>
+                                            <button
+                                                className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-50 text-purple-700 font-semibold text-sm border border-purple-100 hover:bg-purple-100 transition-colors"
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    setActionError(null);
+                                                    try { await extendDwell(device.id, 10); }
+                                                    catch (err: any) { setActionError(err.message); }
+                                                }}
+                                                disabled={isPending}
+                                            >
+                                                <Clock className="w-4 h-4" /> +10s
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {streamStatus === 'running' && !isStreamPaused && (
+                                        <button
+                                            className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
+                                            onClick={(e) => handleControl(e, 'pause')}
+                                            disabled={isPending}
+                                        >
+                                            <Pause className="w-4 h-4 fill-current" /> Pause
+                                        </button>
+                                    )}
+
+                                    {(streamStatus === 'paused' || isStreamPaused) && (
+                                        <button
+                                            className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm"
+                                            onClick={(e) => handleControl(e, 'resume')}
+                                            disabled={isPending}
+                                        >
+                                            <Play className="w-4 h-4 fill-current" /> Resume
+                                        </button>
+                                    )}
+
                                     <button
-                                        className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-sm border border-indigo-100 hover:bg-indigo-100 transition-colors"
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            setActionError(null);
-                                            try { await skipDwell(device.id); }
-                                            catch (err: any) { setActionError(err.message); }
-                                        }}
+                                        className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100 transition-colors"
+                                        onClick={(e) => handleControl(e, 'stop')}
                                         disabled={isPending}
                                     >
-                                        <Play className="w-4 h-4 fill-current" /> Skip Dwell
-                                    </button>
-                                    <button
-                                        className="col-span-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-50 text-purple-700 font-semibold text-sm border border-purple-100 hover:bg-purple-100 transition-colors"
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            setActionError(null);
-                                            try { await extendDwell(device.id, 10); }
-                                            catch (err: any) { setActionError(err.message); }
-                                        }}
-                                        disabled={isPending}
-                                    >
-                                        <Clock className="w-4 h-4" /> +10s
+                                        <Square className="w-4 h-4 fill-current" /> Stop Simulation
                                     </button>
                                 </>
                             )}
-
-                            {streamStatus === 'running' && !isStreamPaused && (
-                                <button
-                                    className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-50 text-amber-600 font-semibold text-sm border border-amber-100 hover:bg-amber-100 transition-colors"
-                                    onClick={(e) => handleControl(e, 'pause')}
-                                    disabled={isPending}
-                                >
-                                    <Pause className="w-4 h-4 fill-current" /> Pause
-                                </button>
-                            )}
-
-                            {(streamStatus === 'paused' || isStreamPaused) && (
-                                <button
-                                    className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-semibold text-sm border border-blue-100 hover:bg-blue-100 transition-colors"
-                                    onClick={(e) => handleControl(e, 'resume')}
-                                    disabled={isPending}
-                                >
-                                    <Play className="w-4 h-4 fill-current" /> Resume
-                                </button>
-                            )}
-
-                            <button
-                                className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-100 hover:bg-red-100 transition-colors"
-                                onClick={(e) => handleControl(e, 'stop')}
-                                disabled={isPending}
-                            >
-                                <Square className="w-4 h-4 fill-current" /> Stop Simulation
-                            </button>
                         </div>
 
                         {actionError && (

@@ -113,9 +113,18 @@ export default function RoutesPage() {
         }
     };
 
-    const openEditModal = (route: Route) => {
-        setEditingRoute(route);
-        setIsEditModalOpen(true);
+    const openEditModal = async (route: Route) => {
+        try {
+            setLoading(true);
+            const fullRoute = await routesService.getRouteById(route.id);
+            setEditingRoute(fullRoute);
+            setIsEditModalOpen(true);
+        } catch (error) {
+            console.error('Error fetching full route for edit:', error);
+            alert('Failed to load route details for editing');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleAddressRouteCreated = async (routeId: string) => {
@@ -276,8 +285,10 @@ export default function RoutesPage() {
                             setEditingRoute(null);
                         }}
                         initialData={{
+                            id: editingRoute.id,
                             name: editingRoute.name,
                             points: editingRoute.points,
+                            waypoints: (editingRoute as any).waypoints, // Passed from fetched full route
                             metadata: editingRoute.metadata,
                         }}
                         isLoading={isSaving}

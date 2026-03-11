@@ -166,7 +166,7 @@ export const ControlPanel: React.FC = () => {
                             </motion.button>
 
 
-                            {user?.role === 'ADMIN' && (
+                            {(user?.role === 'ADMIN' || user?.role === 'admin') && (
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
@@ -178,7 +178,7 @@ export const ControlPanel: React.FC = () => {
                                 </motion.button>
                             )}
 
-                            {user?.role === 'ADMIN' && (
+                            {(user?.role === 'ADMIN' || user?.role === 'admin') && (
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}

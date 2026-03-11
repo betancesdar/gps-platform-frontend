@@ -17,6 +17,7 @@ const RouteBuilderMap = dynamic(
 interface WaypointsRouteBuilderProps {
     onRouteCreated: (routeId: string) => void;
     onCancel: () => void;
+    initialData?: any;
 }
 
 // Fixed Icons
@@ -137,7 +138,7 @@ const WaypointRow: React.FC<WaypointRowProps> = ({
                                                 key={i}
                                                 className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm flex items-center gap-3 border-b border-gray-50 last:border-0"
                                                 onClick={() => {
-                                                    onChange({ ...waypoint, text: s.label });
+                                                    onChange({ ...waypoint, text: s.label, lat: s.lat, lng: s.lng });
                                                     setShowSuggestions(false);
                                                 }}
                                             >
@@ -191,6 +192,7 @@ const WaypointRow: React.FC<WaypointRowProps> = ({
 export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
     onRouteCreated,
     onCancel,
+    initialData,
 }) => {
     // --- State ---
     const [routeName, setRouteName] = useState('');
@@ -208,6 +210,50 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
 
     // Post-creation state
     const [createdRouteId, setCreatedRouteId] = useState<string | null>(null);
+
+    // Initialization Effect for Edit Mode
+    useEffect(() => {
+        if (initialData && initialData.waypoints && initialData.waypoints.length >= 2) {
+            setRouteName(initialData.name || '');
+            
+            const wps = initialData.waypoints;
+            
+            // First waypoint is origin
+            const startWp = wps[0];
+            setOrigin({
+                kind: 'origin',
+                mode: startWp.mode || 'manual',
+                text: startWp.text || '',
+                lat: startWp.lat,
+                lng: startWp.lng,
+                dwellSeconds: startWp.dwellSeconds || 0
+            });
+            
+            // Last waypoint is destination
+            const endWp = wps[wps.length - 1];
+            setDestination({
+                kind: 'destination',
+                mode: endWp.mode || 'manual',
+                text: endWp.text || '',
+                lat: endWp.lat,
+                lng: endWp.lng,
+                dwellSeconds: endWp.dwellSeconds || 0
+            });
+            
+            // Middle waypoints are stops
+            if (wps.length > 2) {
+                const middleWps = wps.slice(1, wps.length - 1).map((wp: any) => ({
+                    kind: 'stop' as const,
+                    mode: wp.mode || 'manual',
+                    text: wp.text || '',
+                    lat: wp.lat,
+                    lng: wp.lng,
+                    dwellSeconds: wp.dwellSeconds || 30
+                }));
+                setStops(middleWps);
+            }
+        }
+    }, [initialData]);
 
     // --- Handlers ---
     const handleMapClick = (lat: number, lng: number) => {
@@ -254,7 +300,13 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
                 waypoints: [origin, ...stops, destination]
             };
 
-            const response = await routesService.createRouteFromWaypoints(payload);
+            let response;
+            if (initialData?.id) {
+                response = await routesService.updateRouteFromWaypoints(initialData.id, payload);
+            } else {
+                response = await routesService.createRouteFromWaypoints(payload);
+            }
+            
             setCreatedRouteId(response.routeId);
         } catch (error: any) {
             console.error(error);
@@ -271,7 +323,7 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 shadow-sm border-4 border-white ring-1 ring-gray-100">
                     <span className="text-4xl">✅</span>
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Route Created!</h3>
+                <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Route {initialData?.id ? 'Updated' : 'Created'}!</h3>
                 <p className="text-gray-500 mb-8 max-w-xs text-center">Your route formulation has been saved successfully.</p>
 
                 <div className="w-full max-w-sm">
@@ -373,7 +425,7 @@ export const WaypointsRouteBuilder: React.FC<WaypointsRouteBuilderProps> = ({
 
                 <div className="flex gap-4 pt-4 mt-auto sticky bottom-0 bg-white/95 backdrop-blur py-4 border-t border-gray-100 z-20">
                     <Button onClick={handleSubmit} isLoading={isCreating} variant="primary" className="flex-1 shadow-lg shadow-blue-500/20 py-3 text-sm font-bold">
-                        {isCreating ? 'Generating Route...' : 'Create Route'}
+                        {isCreating ? 'Saving...' : initialData?.id ? 'Save Changes' : 'Create Route'}
                     </Button>
                     <Button onClick={onCancel} variant="secondary" className="px-6">
                         Cancel

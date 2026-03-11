@@ -167,6 +167,18 @@ export const routesService = {
     },
 
     /**
+     * Update route from waypoints (Full Edit)
+     * PUT /api/routes/:id
+     */
+    async updateRouteFromWaypoints(routeId: string, data: CreateRouteFromWaypointsRequest): Promise<CreateRouteResponse> {
+        const response = await axiosInstance.put<ApiResponse<CreateRouteResponse>>(`/routes/${routeId}`, data);
+        if (response.data && response.data.data) {
+            return response.data.data;
+        }
+        return response.data as unknown as CreateRouteResponse;
+    },
+
+    /**
      * Delete route
      * DELETE /api/routes/:id
      */

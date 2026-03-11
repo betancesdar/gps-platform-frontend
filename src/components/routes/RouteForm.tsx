@@ -14,6 +14,7 @@ interface RouteFormProps {
 export const RouteForm: React.FC<RouteFormProps> = ({
     onCancel,
     onAddressRouteCreated,
+    initialData,
 }) => {
     return (
         <WaypointsRouteBuilder
@@ -23,6 +24,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({
                 }
             }}
             onCancel={onCancel}
+            initialData={initialData}
         />
     );
 };
