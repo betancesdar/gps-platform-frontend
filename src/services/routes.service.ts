@@ -23,6 +23,17 @@ interface BackendRoute {
         bearing?: number;
         accuracy?: number;
     }>;
+    waypoints?: Array<{
+        seq: number;
+        kind: 'origin' | 'stop' | 'destination';
+        mode: 'address' | 'manual';
+        label?: string;
+        text?: string;
+        lat: number;
+        lng: number;
+        dwellSeconds: number;
+        pointIndex: number;
+    }>;
 }
 
 // Backend route point format for creation
@@ -58,7 +69,8 @@ function transformRoute(backendRoute: BackendRoute): Route {
         pointCount: backendRoute.pointCount || (backendRoute as any).totalPoints || 0,
         createdAt: new Date(backendRoute.createdAt),
         updatedAt: new Date(backendRoute.createdAt),
-    };
+        waypoints: backendRoute.waypoints,
+    } as Route; // Casting assuming Route is updated or any fields we tack on
 }
 
 export const routesService = {

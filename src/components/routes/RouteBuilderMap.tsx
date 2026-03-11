@@ -60,6 +60,24 @@ const MapEvents = ({ onClick, selectingMode }: { onClick?: (lat: number, lng: nu
     return null;
 };
 
+// Component to dynamically fit Map to plotted markers
+const MapBoundsUpdater = ({ points }: { points: any[] }) => {
+    const map = useMapEvents({});
+    useEffect(() => {
+        if (points.length > 0) {
+            try {
+                const bounds = L.latLngBounds(points);
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+                }
+            } catch (error) {
+                console.warn('MapBoundsUpdater failed to fit bounds:', error);
+            }
+        }
+    }, [map, points]);
+    return null;
+};
+
 export const RouteBuilderMap: React.FC<RouteBuilderMapProps> = ({
     origin,
     destination,
@@ -104,6 +122,17 @@ export const RouteBuilderMap: React.FC<RouteBuilderMapProps> = ({
                     color="#6366f1"
                     weight={4}
                     opacity={0.7}
+                />
+            )}
+            {/* Fit bounds if we have points */}
+            {((origin || destination || stops.length > 0 || (routePreview?.geometry && routePreview.geometry.length > 0))) && (
+                <MapBoundsUpdater 
+                    points={[
+                        ...(origin ? [{lat: origin.lat, lng: origin.lng}] : []),
+                        ...(destination ? [{lat: destination.lat, lng: destination.lng}] : []),
+                        ...stops.map(s => ({lat: s.lat, lng: s.lng})),
+                        ...(routePreview?.geometry ? routePreview.geometry.map((p: any) => ({lat: p[1], lng: p[0]})) : [])
+                    ]} 
                 />
             )}
         </MapContainer>
